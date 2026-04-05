@@ -103,9 +103,8 @@ export const useProductStore = defineStore('products', {
     },
     inquiries: [],
     subscribers: [],
-    blogs: [
-      { id: 1, title: 'The Rise of Oversized Aesthetics', author: 'Shivanshu', status: 'Published', date: '2023-10-20', image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=800' }
-    ],
+    blogs: [],
+    blogLoading: false,
     orders: [],
     users: [
       { id: 1, name: 'John Doe', email: 'john@example.com', role: 'admin' }
@@ -488,6 +487,22 @@ export const useProductStore = defineStore('products', {
     },
     updateSiteContent(section, data) {
       this.siteContent[section] = { ...this.siteContent[section], ...data }
+    },
+    async fetchBlogs() {
+      this.blogLoading = true
+      try {
+        const response = await api.get('/blogs')
+        this.blogs = (response.data.items || response.data).map(b => ({
+          ...b,
+          id: b.blogId || b.id,
+          image: this.resolveImageUrl(b.image || b.images?.[0]),
+          date: b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : '2026-04-05'
+        }))
+      } catch (err) {
+        console.error('Failed to fetch blogs:', err)
+      } finally {
+        this.blogLoading = false
+      }
     }
   }
 })

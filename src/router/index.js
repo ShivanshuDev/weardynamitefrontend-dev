@@ -96,7 +96,7 @@ const routes = [
   {
     path: '/blog/:id',
     name: 'blog-detail',
-    component: () => import('../views/BlogView.vue') // Reusing BlogView or creating a new one if needed, but usually blog detail is separate. 
+    component: () => import('../views/BlogDetailView.vue')
   },
   {
     path: '/faq',
