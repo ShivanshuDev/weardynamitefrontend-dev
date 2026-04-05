@@ -95,7 +95,15 @@ const clearAll = () => {
 
       <!-- Main Product Grid -->
       <main class="product-area">
-        <div v-if="productStore.filteredProducts.length === 0" class="no-results">
+        <div v-if="productStore.isLoading" class="loading-container">
+          <div class="loading-spinner"></div>
+          <p>Fetching our premium collection...</p>
+        </div>
+        <div v-else-if="productStore.error" class="error-container">
+          <p>{{ productStore.error }}</p>
+          <button class="btn" @click="productStore.fetchProducts">Retry</button>
+        </div>
+        <div v-else-if="productStore.filteredProducts.length === 0" class="no-results">
           <h2>No products found</h2>
           <p>Try adjusting your filters.</p>
           <button class="btn" @click="clearAll">Clear Filters</button>
@@ -261,6 +269,32 @@ const clearAll = () => {
 
 .no-results h2 { margin-bottom: 10px; }
 .no-results p { color: #666; margin-bottom: 20px; }
+
+.loading-container, .error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px;
+  text-align: center;
+  background: #f9f9f9;
+  border-radius: 8px;
+  min-height: 400px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0,0,0,0.1);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 .mobile-filter-btn { display: none; }
 .mobile-only { display: none; }

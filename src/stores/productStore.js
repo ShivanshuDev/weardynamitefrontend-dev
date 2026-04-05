@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { mockProducts, filterOptions } from '../data/mockProducts'
 import api from '../utils/api'
+import { useAuthStore } from './authStore'
 
 export const useProductStore = defineStore('products', {
   state: () => ({
-    products: mockProducts,
+    products: [], // Loaded from backend
     filterOptions: filterOptions,
     filters: {
       category: [],
@@ -109,6 +110,9 @@ export const useProductStore = defineStore('products', {
     users: [
       { id: 1, name: 'John Doe', email: 'john@example.com', role: 'admin' }
     ],
+    s3BucketUrl: import.meta.env.VITE_S3_BUCKET_URL || 'https://weardynamite-dev-assets.s3.ap-southeast-2.amazonaws.com/',
+    newArrivals: [],
+    bestSellers: [],
     isLoading: false,
     error: null,
     appliedCoupon: null
@@ -266,17 +270,37 @@ export const useProductStore = defineStore('products', {
     }
   },
   actions: {
+    resolveImageUrl(path) {
+      if (!path) return '';
+      if (typeof path !== 'string') return '';
+      if (path.startsWith('http') || path.startsWith('data:image')) return path;
+      const baseUrl = this.s3BucketUrl.endsWith('/') ? this.s3BucketUrl : `${this.s3BucketUrl}/`;
+      return `${baseUrl}${path}`;
+    },
     async fetchProducts() {
       this.isLoading = true
       this.error = null
       try {
         const response = await api.get('/products')
         // The backend returns { items, total, page, limit, totalPages }
-        this.products = response.data.items.map(p => ({
-          ...p,
-          id: p.productId || p.id, // Ensure ID consistency
-          price: p.salePrice || p.mrp || 0 // Map backend price fields
-        }))
+        const products = response.data.items || response.data
+        
+        this.products = products.map(p => {
+          // Robust mapping from Backend -> Frontend
+          const mapped = {
+            ...p,
+            id: p.product_id || p.id,
+            name: p.product_name || p.name,
+            // Price Logic: salePrice is the effective price. fall back to mrp.
+            price: p.salePrice || p.mrp || 0,
+            mrp: p.mrp || p.salePrice || 0,
+            salePrice: p.salePrice || p.mrp || 0,
+            images: (Array.isArray(p.images) ? p.images : (p.image ? [p.image] : [])).map(img => this.resolveImageUrl(img)),
+            variants: p.variants || [],
+            category: p.category || 'Apparel'
+          }
+          return mapped
+        })
       } catch (err) {
         console.error('Failed to fetch products:', err)
         this.error = 'Failed to load products. Please try again.'
@@ -290,8 +314,13 @@ export const useProductStore = defineStore('products', {
          const p = response.data
          const product = { 
            ...p, 
-           id: p.productId || p.id,
-           price: p.salePrice || p.mrp || 0
+           id: p.product_id || p.id,
+           name: p.product_name || p.name,
+           price: p.salePrice || p.mrp || 0,
+           mrp: p.mrp || p.salePrice || 0,
+           salePrice: p.salePrice || p.mrp || 0,
+           images: Array.isArray(p.images) ? p.images : (p.image ? [p.image] : []),
+           variants: p.variants || []
          }
          
          const idx = this.products.findIndex(existing => existing.id === product.id)
@@ -305,6 +334,36 @@ export const useProductStore = defineStore('products', {
          console.error(`Failed to fetch product ${id}:`, err)
          throw err
        }
+    },
+    async fetchNewArrivals() {
+      try {
+        const response = await api.get('/products/new-arrivals')
+        this.newArrivals = (response.data.items || response.data).map(p => ({
+          ...p,
+          id: p.product_id || p.id,
+          name: p.product_name || p.name,
+          price: p.salePrice || p.mrp || 0,
+          images: (Array.isArray(p.images) ? p.images : (p.image ? [p.image] : [])).map(img => this.resolveImageUrl(img)),
+          variants: p.variants || []
+        }))
+      } catch (err) {
+        console.error('Failed to fetch new arrivals:', err)
+      }
+    },
+    async fetchBestSellers() {
+      try {
+        const response = await api.get('/products/best-sellers')
+        this.bestSellers = (response.data.items || response.data).map(p => ({
+          ...p,
+          id: p.product_id || p.id,
+          name: p.product_name || p.name,
+          price: p.salePrice || p.mrp || 0,
+          images: (Array.isArray(p.images) ? p.images : (p.image ? [p.image] : [])).map(img => this.resolveImageUrl(img)),
+          variants: p.variants || []
+        }))
+      } catch (err) {
+        console.error('Failed to fetch best sellers:', err)
+      }
     },
     addToCart(configurations, productInfo) {
       configurations.forEach(config => {

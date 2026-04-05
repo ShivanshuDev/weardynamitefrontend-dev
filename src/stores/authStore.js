@@ -32,6 +32,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const jwt = await userCredential.user.getIdToken(true);
+        console.log('[AUTH DEBUG] Extraction of fresh ID token successful.');
         
         // Temporarily set token so API interceptor uses it for the sync call
         this.token = jwt;
@@ -105,7 +106,12 @@ export const useAuthStore = defineStore('auth', {
     async fetchOrders() {
       try {
         const response = await api.get('/user/orders');
-        this.orders = response.data;
+        this.orders = response.data.map(o => ({
+          ...o,
+          id: o.order_id || o.id,
+          date: o.created_at || o.date,
+          total: o.total_amount || o.totalUSD || o.total
+        }));
       } catch (error) {
         console.error('Failed to fetch orders:', error);
       }
@@ -113,14 +119,20 @@ export const useAuthStore = defineStore('auth', {
     async fetchOrderById(id) {
       try {
         const response = await api.get(`/user/orders/${id}`);
-        // Optionally update the order in the local state
-        const idx = this.orders.findIndex(o => o.orderId === id || o.id === id);
+        const order = {
+          ...response.data,
+          id: response.data.order_id || response.data.id,
+          date: response.data.created_at || response.data.date,
+          total: response.data.total_amount || response.data.totalUSD || response.data.total
+        };
+        
+        const idx = this.orders.findIndex(o => o.id === order.id);
         if (idx > -1) {
-          this.orders[idx] = response.data;
+          this.orders[idx] = order;
         } else {
-          this.orders.unshift(response.data);
+          this.orders.unshift(order);
         }
-        return response.data;
+        return order;
       } catch (error) {
         console.error('Failed to fetch order:', error);
         throw error;
@@ -149,8 +161,14 @@ export const useAuthStore = defineStore('auth', {
     async addOrder(orderData) {
       try {
         const response = await api.post('/orders', orderData);
-        this.orders.unshift(response.data);
-        return response.data;
+        const order = {
+          ...response.data,
+          id: response.data.order_id || response.data.id,
+          date: response.data.created_at || Date.now(),
+          total: response.data.total_amount || response.data.total
+        };
+        this.orders.unshift(order);
+        return order;
       } catch (error) {
         console.error('Failed to place order:', error);
         throw error;

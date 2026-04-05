@@ -61,6 +61,11 @@ const routes = [
   {
     path: '/order-success',
     name: 'order-success',
+    component: () => import('../views/OrderSuccessView.vue')
+  },
+  {
+    path: '/order-status',
+    name: 'order-status',
     component: () => import('../views/OrderStatusView.vue')
   },
   {

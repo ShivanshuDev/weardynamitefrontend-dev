@@ -42,9 +42,10 @@ const placeOrder = async () => {
   
   try {
     if (paymentMethod.value === 'cod') {
+      const selectedAddress = authStore.addresses.find(a => a.id === selectedAddressId.value)
+      if (!selectedAddress) throw new Error('Please select a shipping address')
+
       const order = {
-        addressId: selectedAddressId.value,
-        paymentMethod: 'COD',
         items: productStore.checkoutItems.map(item => ({
           productId: item.productId,
           name: item.name,
@@ -52,9 +53,18 @@ const placeOrder = async () => {
           quantity: item.quantity,
           color: item.color,
           size: item.size,
-          forWhom: item.forWhom
+          forWhom: item.forWhom,
+          image: item.image
         })),
-        couponCode: productStore.appliedCoupon
+        address_id: selectedAddressId.value,
+        payment_method: paymentMethod.value.toUpperCase(),
+        coupon_code: productStore.appliedCoupon,
+        customer_details: {
+          name: authStore.user.name,
+          email: authStore.user.email,
+          phone: selectedAddress.phone || authStore.user.phone
+        },
+        shipping_address: { ...selectedAddress }
       }
       
       const result = await authStore.addOrder(order)
@@ -64,7 +74,7 @@ const placeOrder = async () => {
       }
       productStore.checkoutItems = []
       productStore.appliedCoupon = null
-      router.push(`/order-status?id=${result.orderId}`)
+      router.push(`/order-success?id=${result.order_id || result.id}`)
     } else {
       // PayU / Online Payment
       const response = await api.post('/payment/initiate', {
@@ -81,7 +91,8 @@ const placeOrder = async () => {
           quantity: item.quantity,
           color: item.color,
           size: item.size,
-          forWhom: item.forWhom
+          forWhom: item.forWhom,
+          image: item.image
         })),
         couponCode: productStore.appliedCoupon
       })

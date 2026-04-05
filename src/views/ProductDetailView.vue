@@ -227,18 +227,18 @@ onMounted(() => {
       <!-- Image Gallery -->
       <div class="gallery-container">
         <div class="thumbnails">
-          <div 
+            <div 
             v-for="(img, idx) in product.images" 
             :key="idx" 
             class="thumbnail"
             :class="{ active: selectedImage === img }"
             @click="selectedImage = img"
           >
-            <img :src="img" :alt="product.name + ' thumbnail ' + idx">
+            <img :src="productStore.resolveImageUrl(img)" :alt="product.name + ' thumbnail ' + idx">
           </div>
         </div>
         <div class="main-image">
-          <img :src="selectedImage" :alt="product.name">
+          <img :src="productStore.resolveImageUrl(selectedImage)" :alt="product.name">
         </div>
       </div>
 
@@ -281,9 +281,7 @@ onMounted(() => {
           <span class="review-count">{{ defaultRating }} ({{ reviewCount }} customer reviews)</span>
         </div>
 
-        <p class="description">
-          {{ product.description || `Premium ${product.fabric || 'Cotton'} material tailored for a ${product.fit?.toLowerCase() || 'perfect'} fit.` }}
-        </p>
+        <div class="description" v-html="product.description || `Premium ${product.fabric || 'Cotton'} material tailored for a ${product.fit?.toLowerCase() || 'perfect'} fit.`"></div>
         
         <div class="details-table">
           <div class="detail-row" v-if="product.fabric"><span class="label">Fabric:</span> <span class="value">{{ product.fabric }}</span></div>

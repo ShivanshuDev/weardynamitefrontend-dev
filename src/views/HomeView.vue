@@ -9,12 +9,15 @@ const productStore = useProductStore()
 
 // Grab 4 newest/featured products to simulate "New Arrivals"
 const newArrivals = computed(() => {
-  return productStore.products.slice(0, 4)
+  return productStore.newArrivals && productStore.newArrivals.length > 0
+    ? productStore.newArrivals.slice(0, 4)
+    : productStore.products.slice(0, 4)
 })
 
-// Grab another 4 to represent 'Most Popular' from original code
 const bestSellers = computed(() => {
-  return productStore.products.slice(4, 8)
+  return productStore.bestSellers && productStore.bestSellers.length > 0
+    ? productStore.bestSellers.slice(0, 4)
+    : productStore.products.slice(4, 8)
 })
 
 // Dynamic Admin-Managed Carousel Slides
@@ -32,6 +35,8 @@ const prevSlide = () => {
 
 onMounted(() => {
   productStore.fetchProducts()
+  productStore.fetchNewArrivals()
+  productStore.fetchBestSellers()
   slideInterval = setInterval(nextSlide, 6000)
 })
 onUnmounted(() => {
@@ -70,7 +75,7 @@ const handleSubscribe = () => {
         :key="index"
         :class="{ active: index === currentSlide }"
       >
-        <div class="slide-bg" :style="{ backgroundImage: `url(${slide.image})` }"></div>
+        <div class="slide-bg" :style="{ backgroundImage: `url(${productStore.resolveImageUrl(slide.image)})` }"></div>
         <div class="slide-overlay"></div>
         <div class="slide-content container">
           <h1>{{ slide.title }}</h1>
@@ -133,7 +138,7 @@ const handleSubscribe = () => {
         class="mega-banner" 
         :class="idx % 2 === 0 ? 'align-right' : 'align-left'"
       >
-        <img :src="promo.image" :alt="promo.title" />
+        <img :src="productStore.resolveImageUrl(promo.image)" :alt="promo.title" />
         <div class="mega-overlay"></div>
         <div class="mega-content container">
           <div class="mega-text-box">
@@ -177,7 +182,7 @@ const handleSubscribe = () => {
             :key="idx"
             class="craft-slide"
           >
-            <img :src="feature.image" :alt="feature.title" />
+            <img :src="productStore.resolveImageUrl(feature.image)" :alt="feature.title" />
             <div class="craft-overlay"></div>
             <div class="craft-content container">
               <h3>{{ feature.title }}</h3>
@@ -252,7 +257,7 @@ const handleSubscribe = () => {
         <RouterLink to="/customize" class="btn primary-btn btn-large">Customize Your Own Design</RouterLink>
       </div>
       <div class="hook-image">
-        <img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=1000&auto=format&fit=crop" alt="Custom Tailoring">
+        <img :src="productStore.resolveImageUrl('https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=1000&auto=format&fit=crop')" alt="Custom Tailoring">
       </div>
     </section>
 

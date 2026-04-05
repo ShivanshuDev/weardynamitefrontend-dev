@@ -159,22 +159,24 @@ const logout = () => {
         </div>
 
         <div class="orders-list" v-else>
-          <div v-for="order in authStore.orders" :key="order.id" class="order-card">
+          <div v-for="order in authStore.orders" :key="order.id" class="order-card hover:shadow-md transition-shadow">
             <div class="order-header">
               <div class="order-meta">
                 <span class="order-id">Order #{{ order.id }}</span>
-                <span class="order-date">{{ new Date(order.date).toLocaleDateString() }}</span>
+                <span class="order-date">{{ order.date }}</span>
               </div>
               <div class="order-status" :class="order.status.toLowerCase()">{{ order.status }}</div>
             </div>
-            <div class="order-items">
-              <div v-for="(item, idx) in order.items" :key="idx" class="order-item">
-                - {{ item.quantity }}x {{ item.name }} ({{ item.color }}, {{ item.size }})
+            <div class="order-body flex items-center gap-6 p-5">
+              <img v-if="order.thumbnail" :src="productStore.resolveImageUrl(order.thumbnail)" class="w-20 h-20 rounded-xl object-cover border border-slate-100 shadow-sm" />
+              <div class="flex-1">
+                 <p class="text-sm font-bold text-slate-800 line-clamp-2 uppercase italic tracking-tighter">{{ order.item_names || 'Processing items...' }}</p>
+                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">{{ order.item_count || 1 }} ITEMS INDEXED</p>
               </div>
             </div>
             <div class="order-footer">
-              <span class="order-total">Total: {{ productStore.formatPrice(order.totalUSD) }}</span>
-              <RouterLink :to="'/order-success?id=' + order.id" class="text-link" style="margin-left: 15px;">View Invoice</RouterLink>
+              <span class="order-total">Total: {{ productStore.formatPrice(order.total) }}</span>
+              <RouterLink :to="'/order-status?id=' + order.id" class="text-link" style="margin-left: 15px;">Manage Order</RouterLink>
             </div>
           </div>
         </div>
