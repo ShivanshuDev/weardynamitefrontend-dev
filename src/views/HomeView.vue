@@ -7,17 +7,17 @@ import { Play, Truck, RotateCcw, ShieldCheck, ChevronLeft, ChevronRight, CheckCi
 
 const productStore = useProductStore()
 
-// Grab 4 newest/featured products to simulate "New Arrivals"
+// Grab 6 newest/featured products to simulate "New Arrivals"
 const newArrivals = computed(() => {
   return productStore.newArrivals && productStore.newArrivals.length > 0
-    ? productStore.newArrivals.slice(0, 4)
-    : productStore.products.slice(0, 4)
+    ? productStore.newArrivals.slice(0, 6)
+    : productStore.products.slice(0, 6)
 })
 
 const bestSellers = computed(() => {
   return productStore.bestSellers && productStore.bestSellers.length > 0
-    ? productStore.bestSellers.slice(0, 4)
-    : productStore.products.slice(4, 8)
+    ? productStore.bestSellers.slice(0, 6)
+    : productStore.products.slice(6, 12)
 })
 
 // Dynamic Admin-Managed Carousel Slides
@@ -444,7 +444,7 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
 .section-subtitle { color: #666; font-size: 1.1rem; }
 .view-all { font-weight: 600; color: #000; text-decoration: none; font-size: 1.05rem; padding-bottom: 5px; transition: opacity 0.2s; }
 .view-all:hover { opacity: 0.6; }
-.product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; }
+.product-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px; }
 
 /* Craftsmanship Banners */
 .craftsmanship-section { margin-bottom: 100px; }
@@ -503,7 +503,7 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
   .trust-grid { flex-direction: column; }
   .mega-text-box { padding: 40px; max-width: 400px; }
   .mega-text-box h2 { font-size: 2.8rem; }
-  .product-grid { grid-template-columns: repeat(2, 1fr); }
+  .product-grid { grid-template-columns: repeat(3, 1fr); }
   .craft-content h3 { font-size: 2.5rem; }
   .branding-layout { grid-template-columns: 1fr; text-align: center; gap: 50px; }
   .perk-list { align-items: center; }
