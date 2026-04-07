@@ -40,7 +40,10 @@ const logout = () => {
   <div class="profile-view container" v-if="authStore.isLoggedIn && authStore.user">
     <div class="profile-sidebar">
       <div class="user-info">
-        <div class="avatar">{{ (authStore.user?.name || 'U').charAt(0).toUpperCase() }}</div>
+        <div class="avatar-container">
+          <img v-if="authStore.user?.photoURL" :src="authStore.user.photoURL" class="avatar-img" />
+          <div v-else class="avatar-fallback">{{ (authStore.user?.name || 'U').charAt(0).toUpperCase() }}</div>
+        </div>
         <h2>{{ authStore.user?.name || 'User' }}</h2>
         <p>{{ authStore.user?.email }}</p>
       </div>
@@ -175,8 +178,11 @@ const logout = () => {
               </div>
             </div>
             <div class="order-footer">
-              <span class="order-total">Total: {{ productStore.formatPrice(order.total) }}</span>
-              <RouterLink :to="'/order-status?id=' + order.id" class="text-link" style="margin-left: 15px;">Manage Order</RouterLink>
+              <span class="order-total">Total: {{ productStore.formatPrice(order.totalUSD || order.total) }}</span>
+              <div class="footer-actions">
+                <RouterLink :to="'/order-status?id=' + order.id" class="text-link">Manage Order</RouterLink>
+                <RouterLink v-if="order.status === 'Delivered'" :to="'/order-status?id=' + order.id" class="btn-review-indicator">Rate & Review Items</RouterLink>
+              </div>
             </div>
           </div>
         </div>
@@ -205,18 +211,35 @@ const logout = () => {
   margin-bottom: 40px;
 }
 
-.avatar {
+.avatar-container {
   width: 80px;
   height: 80px;
   background: #000;
   color: #fff;
-  border-radius: 50%;
+  border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2.5rem;
   font-weight: 700;
   margin: 0 auto 15px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border: 2px solid #fff;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .user-info h2 {
@@ -524,5 +547,27 @@ const logout = () => {
     padding-right: 0;
     padding-bottom: 30px;
   }
+}
+.footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.btn-review-indicator {
+  background: #ebf5ff;
+  color: #2563eb;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid #bfdbfe;
+  transition: all 0.2s;
+}
+
+.btn-review-indicator:hover {
+  background: #dbeafe;
+  transform: translateY(-1px);
 }
 </style>

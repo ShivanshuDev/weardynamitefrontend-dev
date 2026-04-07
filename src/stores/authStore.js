@@ -7,20 +7,7 @@ export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: JSON.parse(localStorage.getItem('user')) || null,
     token: localStorage.getItem('token') || null,
-    addresses: [
-      {
-        id: 1,
-        name: 'Home',
-        fullName: 'Shivanshu Kumar',
-        street: '123 Main Street, Apt 4B',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        zip: '400001',
-        country: 'India',
-        phone: '+91 8543996159',
-        isDefault: true
-      }
-    ],
+    addresses: [],
     orders: []
   }),
   getters: {
@@ -44,7 +31,10 @@ export const useAuthStore = defineStore('auth', {
         this.user = response.data.profile;
         localStorage.setItem('user', JSON.stringify(this.user));
         
-        await this.fetchOrders();
+        await Promise.all([
+          this.fetchOrders(),
+          this.fetchAddresses()
+        ]);
         return true;
       } catch (error) {
         console.error('Login failed:', error);
@@ -65,7 +55,10 @@ export const useAuthStore = defineStore('auth', {
         this.user = response.data.profile;
         localStorage.setItem('user', JSON.stringify(this.user));
         
-        await this.fetchOrders();
+        await Promise.all([
+          this.fetchOrders(),
+          this.fetchAddresses()
+        ]);
         return true;
       } catch (error) {
         console.error('Registration failed:', error);
@@ -82,13 +75,17 @@ export const useAuthStore = defineStore('auth', {
         localStorage.setItem('token', jwt);
 
         const response = await api.post('/auth/sync', { 
-          name: userCredential.user.displayName 
+          name: userCredential.user.displayName,
+          photoURL: userCredential.user.photoURL
         });
         
         this.user = response.data.profile;
         localStorage.setItem('user', JSON.stringify(this.user));
         
-        await this.fetchOrders();
+        await Promise.all([
+          this.fetchOrders(),
+          this.fetchAddresses()
+        ]);
         return true;
       } catch (error) {
         console.error('Google login failed:', error);
@@ -100,6 +97,7 @@ export const useAuthStore = defineStore('auth', {
       this.user = null;
       this.token = null;
       this.orders = [];
+      this.addresses = [];
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     },
@@ -114,6 +112,17 @@ export const useAuthStore = defineStore('auth', {
         }));
       } catch (error) {
         console.error('Failed to fetch orders:', error);
+      }
+    },
+    async fetchAddresses() {
+      try {
+        const response = await api.get('/user/addresses');
+        this.addresses = response.data.map(a => ({
+          ...a,
+          id: a.addressId || a.id
+        }));
+      } catch (error) {
+        console.error('Failed to fetch addresses:', error);
       }
     },
     async fetchOrderById(id) {
@@ -138,25 +147,34 @@ export const useAuthStore = defineStore('auth', {
         throw error;
       }
     },
-    addAddress(address) {
-      if (address.isDefault) {
-        this.addresses.forEach(a => a.isDefault = false)
-      }
-      this.addresses.push({
-        ...address,
-        id: Date.now()
-      })
-    },
-    removeAddress(id) {
-      this.addresses = this.addresses.filter(a => a.id !== id)
-      if (this.addresses.length > 0 && !this.addresses.some(a => a.isDefault)) {
-        this.addresses[0].isDefault = true
+    async addAddress(address) {
+      try {
+        const response = await api.post('/user/addresses', address);
+        // Refresh full list from backend to get correct IDs and default flags
+        await this.fetchAddresses();
+        return response.data;
+      } catch (error) {
+        console.error('Failed to add address:', error);
+        throw error;
       }
     },
-    setDefaultAddress(id) {
-      this.addresses.forEach(a => {
-        a.id === id ? a.isDefault = true : a.isDefault = false
-      })
+    async removeAddress(id) {
+      try {
+        await api.delete(`/user/addresses/${id}`);
+        await this.fetchAddresses();
+      } catch (error) {
+        console.error('Failed to remove address:', error);
+        throw error;
+      }
+    },
+    async setDefaultAddress(id) {
+      try {
+        await api.patch(`/user/addresses/${id}/default`);
+        await this.fetchAddresses();
+      } catch (error) {
+        console.error('Failed to set default address:', error);
+        throw error;
+      }
     },
     async addOrder(orderData) {
       try {

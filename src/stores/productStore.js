@@ -8,6 +8,7 @@ export const useProductStore = defineStore('products', {
     products: [], // Loaded from backend
     filterOptions: filterOptions,
     filters: {
+      gender: [],
       category: [],
       subCategory: [],
       fabric: [],
@@ -23,10 +24,10 @@ export const useProductStore = defineStore('products', {
       searchQuery: ''
     },
     sortBy: 'default', // default, price-asc, price-desc, latest
-    cart: [],
-    checkoutItems: [],
-    isDirectCheckout: false,
-    favorites: [],
+    cart: JSON.parse(localStorage.getItem('cart')) || [],
+    checkoutItems: JSON.parse(localStorage.getItem('checkoutItems')) || [],
+    isDirectCheckout: JSON.parse(localStorage.getItem('isDirectCheckout')) || false,
+    favorites: JSON.parse(localStorage.getItem('favorites')) || [],
     currency: 'INR',
     currencyRates: {
       'INR': { symbol: '₹', rate: 1 },
@@ -225,8 +226,8 @@ export const useProductStore = defineStore('products', {
         result = result.filter(p => p.name.toLowerCase().includes(query))
       }
 
-      // Apply Array Filters (Category, SubCategory, etc.)
-      const arrayFilters = ['category', 'subCategory', 'fabric', 'type', 'occasion', 'fit', 'neckType']
+      // Apply Array Filters (Gender, Category, SubCategory, etc.)
+      const arrayFilters = ['gender', 'category', 'subCategory', 'fabric', 'type', 'occasion', 'fit', 'neckType']
       arrayFilters.forEach(filterKey => {
         if (state.filters[filterKey] && state.filters[filterKey].length > 0) {
           result = result.filter(p => state.filters[filterKey].includes(p[filterKey]))
@@ -391,15 +392,20 @@ export const useProductStore = defineStore('products', {
           })
         }
       })
+      localStorage.setItem('cart', JSON.stringify(this.cart))
     },
     removeFromCart(cartItemId) {
       this.cart = this.cart.filter(item => item.id !== cartItemId)
+      localStorage.setItem('cart', JSON.stringify(this.cart))
     },
     updateCartQuantity(cartItemId, delta) {
       const item = this.cart.find(i => i.id === cartItemId)
       if (item) {
         const newQ = item.quantity + delta
-        if (newQ > 0) item.quantity = newQ
+        if (newQ > 0) {
+          item.quantity = newQ
+          localStorage.setItem('cart', JSON.stringify(this.cart))
+        }
       }
     },
     initiateDirectCheckout(configs, productInfo) {
@@ -416,10 +422,14 @@ export const useProductStore = defineStore('products', {
         quantity: config.quantity
       }))
       this.isDirectCheckout = true
+      localStorage.setItem('checkoutItems', JSON.stringify(this.checkoutItems))
+      localStorage.setItem('isDirectCheckout', JSON.stringify(this.isDirectCheckout))
     },
     initiateCartCheckout() {
       this.checkoutItems = [...this.cart]
       this.isDirectCheckout = false
+      localStorage.setItem('checkoutItems', JSON.stringify(this.checkoutItems))
+      localStorage.setItem('isDirectCheckout', JSON.stringify(this.isDirectCheckout))
     },
     setCurrency(code) {
       if (this.currencyRates[code]) {
@@ -434,6 +444,7 @@ export const useProductStore = defineStore('products', {
       } else {
         this.favorites.push(productId)
       }
+      localStorage.setItem('favorites', JSON.stringify(this.favorites))
     },
     toggleFilter(group, value) {
 
@@ -446,6 +457,7 @@ export const useProductStore = defineStore('products', {
     },
     clearFilters() {
       this.filters = {
+        gender: [],
         category: [],
         subCategory: [],
         fabric: [],
@@ -460,6 +472,13 @@ export const useProductStore = defineStore('products', {
         searchQuery: ''
       }
       this.sortBy = 'default'
+    },
+    syncFiltersFromURL(query) {
+      if (!query) return;
+      this.clearFilters();
+      if (query.gender) this.filters.gender = Array.isArray(query.gender) ? query.gender : [query.gender];
+      if (query.category) this.filters.category = Array.isArray(query.category) ? query.category : [query.category];
+      if (query.subCategory) this.filters.subCategory = Array.isArray(query.subCategory) ? query.subCategory : [query.subCategory];
     },
 
     // --- Admin Actions ---

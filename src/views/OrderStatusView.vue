@@ -46,7 +46,19 @@ const getCalculations = (totalUSD) => {
 
 const orderCalcs = computed(() => {
   if (!order.value) return null
-  return getCalculations(order.value.totalUSD)
+  const total = order.value.total_amount || order.value.total || order.value.totalUSD || 0
+  return getCalculations(total)
+})
+
+const returnPolicyText = computed(() => {
+  if (!order.value || !order.value.items || order.value.items.length === 0) return '7 days'
+  const items = order.value.items
+  const returnableItems = items.filter(item => item.isReturnable !== false)
+  
+  if (returnableItems.length === 0) return 'non-returnable'
+  
+  const minDays = Math.min(...returnableItems.map(item => item.returnDays || 7))
+  return `${minDays} days`
 })
 </script>
 
@@ -79,10 +91,10 @@ const orderCalcs = computed(() => {
             <p><strong>GSTIN:</strong> 09ABCDE1234F1Z5</p>
           </div>
           <div class="invoice-meta">
-            <h2 class="invoice-title">TAX INVOICE</h2>
+            <h2 class="invoice-title">ORDER INVOICE</h2>
             <div class="meta-row">
-              <span class="meta-label">Invoice / Order ID:</span>
-              <span class="meta-val">{{ order.id }}</span>
+              <span class="meta-label">Order ID:</span>
+              <span class="meta-val">{{ order.order_id || order.id }}</span>
             </div>
             <div class="meta-row">
               <span class="meta-label">Invoice Date:</span>
@@ -124,8 +136,9 @@ const orderCalcs = computed(() => {
                 <th width="35%">Product Description</th>
                 <th width="10%" class="text-center">Qty</th>
                 <th width="15%" class="text-right">Unit Price</th>
-                <th width="15%" class="text-right">Taxable Val</th>
-                <th width="20%" class="text-right">Total Amount</th>
+                <th width="15%" class="text-right">Taxable</th>
+                <th width="15%" class="text-right">Total</th>
+                <th v-if="order.status === 'Delivered'" width="15%" class="text-center no-print">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -141,6 +154,14 @@ const orderCalcs = computed(() => {
                 <!-- Assuming item price includes GST, reverse calculate taxable value for the item -->
                 <td class="text-right">{{ productStore.formatPrice((item.price * item.quantity)/1.18) }}</td>
                 <td class="text-right">{{ productStore.formatPrice(item.price * item.quantity) }}</td>
+                <td v-if="order.status === 'Delivered'" class="text-center no-print">
+                   <RouterLink 
+                     :to="{ path: '/add-review', query: { orderId: order.id, productId: item.product_id } }" 
+                     class="btn-review-sm"
+                   >
+                     Rate Product
+                   </RouterLink>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -150,27 +171,27 @@ const orderCalcs = computed(() => {
           <div class="totals-table">
             <div class="total-row">
               <span class="label">Total Taxable Value:</span>
-              <span class="val">{{ productStore.formatPrice(orderCalcs.taxableValue) }}</span>
+              <span class="val">{{ productStore.formatPrice((order.total_amount || order.total || 0) / 1.18) }}</span>
             </div>
             <div class="total-row">
               <span class="label">CGST (9%):</span>
-              <span class="val">{{ productStore.formatPrice(orderCalcs.cgst) }}</span>
+              <span class="val">{{ productStore.formatPrice(((order.total_amount || order.total || 0) / 1.18) * 0.09) }}</span>
             </div>
             <div class="total-row">
               <span class="label">SGST (9%):</span>
-              <span class="val">{{ productStore.formatPrice(orderCalcs.sgst) }}</span>
+              <span class="val">{{ productStore.formatPrice(((order.total_amount || order.total || 0) / 1.18) * 0.09) }}</span>
             </div>
             <div class="total-row">
               <span class="label">Shipping:</span>
-              <span class="val">{{ productStore.formatPrice(0) }}</span>
+              <span class="val">{{ productStore.formatPrice(order.shipping_total || 0) }}</span>
             </div>
             <div class="total-row">
               <span class="label">Discount:</span>
-              <span class="val">{{ productStore.formatPrice(0) }}</span>
+              <span class="val">{{ productStore.formatPrice(order.discount_total || 0) }}</span>
             </div>
             <div class="total-row grand-total">
               <span class="label">Grand Total:</span>
-              <span class="val">{{ productStore.formatPrice(order.totalUSD) }}</span>
+              <span class="val">{{ productStore.formatPrice(order.total_amount || order.total || 0) }}</span>
             </div>
           </div>
         </div>
@@ -190,7 +211,7 @@ const orderCalcs = computed(() => {
         <div class="inv-terms">
           <h4>Terms, Conditions & Return Policy</h4>
           <ol>
-            <li>Goods once sold can only be returned within 30 days of delivery, provided they are unused, unwashed, and in original packaging with tags intact.</li>
+            <li>Goods once sold can only be returned within <strong>{{ returnPolicyText }}</strong> of delivery, provided they are unused, unwashed, and in original packaging with tags intact.</li>
             <li>In case of a defective item, please notify us within 48 hours to be eligible for a replacement or full refund.</li>
             <li>All disputes are subject to Uttar Pradesh jurisdiction only.</li>
             <li>For Cash on Delivery (COD) orders, payment must be handed strictly in cash to the delivery executive before the package is opened.</li>
@@ -344,7 +365,7 @@ const orderCalcs = computed(() => {
 .inv-table th {
   background: #f5f5f5;
   color: #333;
-  padding: 12px 15px;
+  padding: 8px 15px;
   text-transform: uppercase;
   font-size: 0.85rem;
   font-weight: 600;
@@ -546,5 +567,24 @@ const orderCalcs = computed(() => {
   .header, header, nav, footer {
     display: none !important;
   }
+}
+
+.btn-review-sm {
+  background: #000;
+  color: #fff !important;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-review-sm:hover {
+  background: #333;
+  transform: translateY(-1px);
 }
 </style>

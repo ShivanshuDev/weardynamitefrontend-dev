@@ -1,35 +1,51 @@
 <template>
-  <div class="product-card">
+  <div class="product-card" :class="{ 'on-sale': hasDiscount }">
     <div class="product-image">
       <RouterLink :to="'/product/' + product.id" class="img-link">
-        <img :src="product.images?.[0] || 'https://via.placeholder.com/300x400'" :alt="product.name">
+        <img :src="product.images?.[0] || 'https://via.placeholder.com/300x400'" :alt="product.name" loading="lazy">
       </RouterLink>
-      <button class="favorite-btn" @click.prevent="productStore.toggleFavorite(product.id)" :title="productStore.isFavorite(product.id) ? 'Remove from Favorites' : 'Add to Favorites'">
+      
+      <!-- Premium Badges -->
+      <div v-if="isOutOfStock" class="badge out-of-stock">Out of Stock</div>
+      <div v-else-if="product.featured" class="badge featured">Best Seller</div>
+      <div v-else-if="isNewArrival" class="badge new">New Arrival</div>
+      <div v-if="hasDiscount && !isOutOfStock" class="badge discount">-{{ discountPercent }}%</div>
+
+      <button class="favorite-btn" 
+              @click.prevent="productStore.toggleFavorite(product.id)" 
+              :class="{ 'is-active': productStore.isFavorite(product.id) }">
         <Heart :class="{ 'filled': productStore.isFavorite(product.id) }" :size="18" />
       </button>
-      <div class="product-overlay">
-        <!-- Quick Add redirects to detail page to configure Him/Her/Child -->
-        <RouterLink :to="'/product/' + product.id" class="add-to-cart">Quick Add</RouterLink>
-      </div>
 
-      <div v-if="isOutOfStock" class="out-of-stock-badge">
-        Out of Stock
+      <div class="quick-view-overlay">
+        <RouterLink :to="'/product/' + product.id" class="btn-quick-view">
+          View Detail
+        </RouterLink>
       </div>
     </div>
-    <div class="product-info">
-      <span class="category">{{ product.category }}</span>
-      <RouterLink :to="'/product/' + product.id">
-        <h3>{{ product.name }}</h3>
+
+    <div class="product-content">
+      <div class="product-meta">
+        <span class="category">{{ product.category }}</span>
+        <div class="swatches" v-if="product.variants?.length">
+          <span 
+            v-for="v in product.variants.slice(0, 4)" 
+            :key="v.color" 
+            :style="{ backgroundColor: v.color }"
+            class="swatch"
+            :title="v.color"
+          ></span>
+          <span v-if="product.variants.length > 4" class="more-colors">+{{ product.variants.length - 4 }}</span>
+        </div>
+      </div>
+
+      <RouterLink :to="'/product/' + product.id" class="name-link">
+        <h3 class="product-name">{{ product.name }}</h3>
       </RouterLink>
-      <div class="price">{{ productStore.formatPrice(product.price) }}</div>
-      <div class="swatches" v-if="product.variants">
-        <span 
-          v-for="v in product.variants" 
-          :key="v.color" 
-          :style="{ backgroundColor: v.color }"
-          class="swatch"
-          :title="v.color"
-        ></span>
+
+      <div class="price-container">
+        <span class="current-price">{{ productStore.formatPrice(product.price) }}</span>
+        <span v-if="hasDiscount" class="old-price">{{ productStore.formatPrice(product.mrp) }}</span>
       </div>
     </div>
   </div>
@@ -51,37 +67,48 @@ const props = defineProps({
 })
 
 const isOutOfStock = computed(() => {
-  if (!props.product.variants) return props.product.stock === 0
-  const totalStock = props.product.variants.reduce((total, v) => {
-    const variantStock = v.sizes?.reduce((sTotal, s) => sTotal + (s.stock || 0), 0) || 0
-    return total + variantStock
-  }, 0)
-  return totalStock === 0
+  if (!props.product.variants || props.product.variants.length === 0) return props.product.stock === 0
+  return !props.product.variants.some(v => v.sizes?.some(s => (s.stock || 0) > 0))
+})
+
+const isNewArrival = computed(() => {
+  if (!props.product.dateAdded) return false
+  const addedDate = new Date(props.product.dateAdded)
+  const today = new Date()
+  const diffTime = Math.abs(today - addedDate)
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return diffDays <= 14
+})
+
+const hasDiscount = computed(() => {
+  return props.product.mrp > props.product.price
+})
+
+const discountPercent = computed(() => {
+  if (!hasDiscount.value) return 0
+  return Math.round(((props.product.mrp - props.product.price) / props.product.mrp) * 100)
 })
 </script>
 
 <style scoped>
 .product-card {
-  transition: transform 0.3s ease;
   position: relative;
-}
-
-.product-card:hover {
-  transform: translateY(-5px);
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  background: white;
+  max-width: 250px;
 }
 
 .product-image {
   position: relative;
-  background-color: #f5f5f5;
-  aspect-ratio: 3/4;
+  aspect-ratio: 1/1; /* Modern Square Format */
   overflow: hidden;
-  margin-bottom: 15px;
-  border-radius: 4px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 12px;
 }
 
 .img-link {
   display: block;
-  width: 100%;
   height: 100%;
 }
 
@@ -89,118 +116,160 @@ const isOutOfStock = computed(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: scale 0.5s ease;
+  transition: transform 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
 .product-card:hover .product-image img {
-  scale: 1.05;
+  transform: scale(1.08);
 }
 
+/* Badges */
+.badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 8px;
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 3px;
+  z-index: 5;
+}
+
+.out-of-stock { background: #fee2e2; color: #991b1b; }
+.featured { background: #dcfce7; color: #166534; }
+.new { background: #fef9c3; color: #854d0e; }
+.discount { 
+  left: auto; 
+  right: 8px; 
+  background: #3b82f6; 
+  color: #fff; 
+}
+
+/* Favorite Button */
 .favorite-btn {
   position: absolute;
-  top: 15px;
-  right: 15px;
-  background: white;
-  width: 36px;
-  height: 36px;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
+  background: white;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #333;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  transition: all 0.2s;
-  z-index: 2;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.3s;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
 }
 
 .favorite-btn:hover {
   transform: scale(1.1);
+  background: #f8fafc;
 }
 
-.favorite-btn .filled {
-  fill: #ff4757;
-  color: #ff4757;
+.favorite-btn.is-active {
+  color: #ef4444;
 }
 
-.out-of-stock-badge {
+/* Hover Overlay */
+.quick-view-overlay {
   position: absolute;
-  top: 15px;
-  left: 15px;
-  background: #c53030;
-  color: #fff;
-  padding: 5px 10px;
-  font-size: 0.75rem;
+  inset: 0;
+  background: rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+  backdrop-filter: blur(1px);
+}
+
+.product-card:hover .quick-view-overlay {
+  opacity: 1;
+}
+
+.btn-quick-view {
+  background: white;
+  color: #000;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+  transform: translateY(8px);
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.product-card:hover .btn-quick-view {
+  transform: translateY(0);
+}
+
+/* Content */
+.product-content {
+  padding: 0 2px;
+}
+
+.product-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.category {
+  font-size: 9px;
   font-weight: 700;
-  border-radius: 4px;
-  z-index: 2;
+  color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.product-overlay {
-  position: absolute;
-  bottom: -50px;
-  left: 0;
-  width: 100%;
-  padding: 15px;
-  transition: bottom 0.3s ease;
-  display: flex;
-  justify-content: center;
-}
-
-.product-card:hover .product-overlay {
-  bottom: 0;
-}
-
-.add-to-cart {
-  background-color: #fff;
-  color: #000;
-  border: 1px solid #000;
-  padding: 10px 20px;
-  font-weight: 600;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  transition: all 0.3s;
-  width: 100%;
-  text-align: center;
-}
-
-.add-to-cart:hover {
-  background-color: #000;
-  color: #fff;
-}
-
-.category {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  color: #888;
-  letter-spacing: 1px;
-  display: block;
-  margin-bottom: 5px;
-}
-
-h3 {
-  font-family: var(--font-body);
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.price {
-  font-weight: 700;
-  color: #000;
-}
-
 .swatches {
   display: flex;
-  gap: 5px;
-  margin-top: 10px;
+  align-items: center;
+  gap: 3px;
 }
 
 .swatch {
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  border: 1px solid #ddd;
+  border: 1px solid #e2e8f0;
+}
+
+.product-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 6px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.price-container {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.current-price {
+  font-size: 14px;
+  font-weight: 800;
+  color: #000;
+}
+
+.old-price {
+  font-size: 11px;
+  color: #94a3b8;
+  text-decoration: line-through;
+  font-weight: 500;
 }
 </style>

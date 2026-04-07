@@ -1,24 +1,75 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useProductStore } from '../stores/productStore'
 import ProductCard from '../components/ProductCard.vue'
-import { Filter, X } from 'lucide-vue-next'
+import { Filter, X, ChevronDown, ChevronRight } from 'lucide-vue-next'
+import { PRODUCT_TAXONOMY, GENDERS } from '../data/categories'
 
+const route = useRoute()
 const productStore = useProductStore()
 
 onMounted(() => {
   productStore.fetchProducts()
+  // Sync initial filters from URL
+  if (Object.keys(route.query).length > 0) {
+    productStore.syncFiltersFromURL(route.query)
+  }
 })
+
+// Watch for route changes (from Mega Menu)
+watch(() => route.query, (newQuery) => {
+  productStore.syncFiltersFromURL(newQuery)
+}, { deep: true })
 
 const isSidebarOpen = ref(false)
 
+// Dynamic Categorization Helpers
+const availableCategories = computed(() => {
+  const selectedGenders = productStore.filters.gender
+  if (selectedGenders.length === 0) {
+    // Show all categories from all genders if none selected
+    const all = new Set()
+    GENDERS.forEach(g => Object.keys(PRODUCT_TAXONOMY[g]).forEach(c => all.add(c)))
+    return Array.from(all)
+  }
+  const filtered = new Set()
+  selectedGenders.forEach(g => {
+    if (PRODUCT_TAXONOMY[g]) {
+      Object.keys(PRODUCT_TAXONOMY[g]).forEach(c => filtered.add(c))
+    }
+  })
+  return Array.from(filtered)
+})
+
+const availableSubCategories = computed(() => {
+  const selectedGenders = productStore.filters.gender
+  const selectedCats = productStore.filters.category
+  
+  if (selectedCats.length === 0) {
+    // Show all subs for selected genders
+    const all = new Set()
+    const gendersToSearch = selectedGenders.length > 0 ? selectedGenders : GENDERS
+    gendersToSearch.forEach(g => {
+      Object.values(PRODUCT_TAXONOMY[g] || {}).forEach(subs => subs.forEach(s => all.add(s)))
+    })
+    return Array.from(all)
+  }
+
+  const filtered = new Set()
+  const gendersToSearch = selectedGenders.length > 0 ? selectedGenders : GENDERS
+  gendersToSearch.forEach(g => {
+    selectedCats.forEach(c => {
+      if (PRODUCT_TAXONOMY[g] && PRODUCT_TAXONOMY[g][c]) {
+        PRODUCT_TAXONOMY[g][c].forEach(s => filtered.add(s))
+      }
+    })
+  })
+  return Array.from(filtered)
+})
+
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value
-}
-
-const applyPriceFilter = (e) => {
-  // Price filter is v-modeled, so it updates state automatically.
-  // We can trigger a manual clear if needed.
 }
 
 const clearAll = () => {
@@ -74,21 +125,74 @@ const clearAll = () => {
           </div>
         </div>
 
-        <!-- Render checkboxes for array filters -->
-        <div class="filter-group" v-for="(options, key) in productStore.filterOptions" :key="key">
-          <h4 class="filter-title">{{ key === 'subCategory' ? 'Sub Category' : key === 'neckType' ? 'Neck Type' : key.charAt(0).toUpperCase() + key.slice(1) }}</h4>
+        <!-- Gender / Segment Filter -->
+        <div class="filter-group">
+          <h4 class="filter-title">Gender / Segment</h4>
           <div class="filter-options style-scroll">
-            <label class="filter-label" v-for="option in options" :key="option">
+            <label class="filter-label" v-for="gender in GENDERS" :key="gender">
               <input 
                 type="checkbox" 
-                :value="option" 
-                :checked="productStore.filters[key]?.includes(option)"
-                @change="productStore.toggleFilter(key, option)"
+                :value="gender" 
+                :checked="productStore.filters.gender.includes(gender)"
+                @change="productStore.toggleFilter('gender', gender)"
               >
               <span class="checkmark"></span>
-              {{ option }}
+              {{ gender }}
             </label>
           </div>
+        </div>
+
+        <!-- Dynamic Category Filter -->
+        <div class="filter-group">
+          <h4 class="filter-title">Category</h4>
+          <div class="filter-options style-scroll">
+            <label class="filter-label" v-for="cat in availableCategories" :key="cat">
+              <input 
+                type="checkbox" 
+                :value="cat" 
+                :checked="productStore.filters.category.includes(cat)"
+                @change="productStore.toggleFilter('category', cat)"
+              >
+              <span class="checkmark"></span>
+              {{ cat }}
+            </label>
+          </div>
+        </div>
+
+        <!-- Dynamic Sub-Category Filter -->
+        <div class="filter-group">
+          <h4 class="filter-title">Sub Category</h4>
+          <div class="filter-options style-scroll">
+            <label class="filter-label" v-for="sub in availableSubCategories" :key="sub">
+              <input 
+                type="checkbox" 
+                :value="sub" 
+                :checked="productStore.filters.subCategory.includes(sub)"
+                @change="productStore.toggleFilter('subCategory', sub)"
+              >
+              <span class="checkmark"></span>
+              {{ sub }}
+            </label>
+          </div>
+        </div>
+
+        <!-- Other Standard Filters -->
+        <div class="filter-group" v-for="(options, key) in productStore.filterOptions" :key="key">
+          <template v-if="key !== 'category' && key !== 'subCategory'">
+            <h4 class="filter-title">{{ key === 'neckType' ? 'Neck Type' : key.charAt(0).toUpperCase() + key.slice(1) }}</h4>
+            <div class="filter-options style-scroll">
+              <label class="filter-label" v-for="option in options" :key="option">
+                <input 
+                  type="checkbox" 
+                  :value="option" 
+                  :checked="productStore.filters[key]?.includes(option)"
+                  @change="productStore.toggleFilter(key, option)"
+                >
+                <span class="checkmark"></span>
+                {{ option }}
+              </label>
+            </div>
+          </template>
         </div>
 
       </aside>
@@ -108,7 +212,7 @@ const clearAll = () => {
           <p>Try adjusting your filters.</p>
           <button class="btn" @click="clearAll">Clear Filters</button>
         </div>
-        <div class="grid grid-3 shop-grid" v-else>
+        <div class="grid grid-5 shop-grid" v-else>
           <ProductCard 
             v-for="product in productStore.filteredProducts" 
             :key="product.id" 
@@ -301,16 +405,20 @@ const clearAll = () => {
 .sidebar-overlay { display: none; }
 
 /* Responsive grid for products - overriding default index.css for inner layout */
-@media (min-width: 1024px) {
-  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 1400px) {
+  .grid-5 { grid-template-columns: repeat(5, 1fr); }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1400px) {
   .shop-layout {
     grid-template-columns: 200px 1fr;
     gap: 20px;
   }
-  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-5 { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 1024px) {
+  .grid-5 { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {

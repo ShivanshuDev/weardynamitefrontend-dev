@@ -73,29 +73,22 @@ watch(() => authStore.user, (newUser) => {
   }
 })
 
-// ... existing review refs ...
-const defaultRating = 4.5
-const reviewCount = ref(12)
-const reviews = ref([
-  { id: 1, author: 'Alex M.', rating: 5, text: 'Amazing quality! The fabric feels premium.', date: '2026-02-15' },
-  { id: 2, author: 'Sam K.', rating: 4, text: 'Great fit for the family, but shipping took a while.', date: '2026-03-01' }
-])
-const reviewForm = ref({ name: '', rating: 5, text: '' })
-
-const submitReview = () => {
-  if (reviewForm.value.name && reviewForm.value.text) {
-    reviews.value.unshift({
-      id: Date.now(),
-      author: reviewForm.value.name,
-      rating: reviewForm.value.rating,
-      text: reviewForm.value.text,
-      date: new Date().toISOString().split('T')[0]
-    })
-    reviewCount.value++
-    reviewForm.value = { name: '', rating: 5, text: '' }
-    alert('Review submitted successfully!')
+const reviews = ref([])
+const fetchReviews = async () => {
+  try {
+    const apiBase = 'http://localhost:3001/api'
+    const res = await axios.get(`${apiBase}/reviews/${route.params.id}`)
+    reviews.value = res.data
+  } catch (err) {
+    console.error('Error fetching reviews:', err)
   }
 }
+
+const averageRating = computed(() => {
+  if (reviews.value.length === 0) return 0
+  const total = reviews.value.reduce((acc, r) => acc + r.rating, 0)
+  return (total / reviews.value.length).toFixed(1)
+})
 
 // Family Configuration System
 const configurations = ref([
@@ -149,15 +142,16 @@ const addToCart = () => {
       alert(`The selection ${config.color} / ${config.size} is out of stock.`)
       return
     }
-    if (config.quantity > getStock(config.color, config.size)) {
-      alert(`Insufficient stock for ${config.color} / ${config.size}.`)
-      return
-    }
   }
 
   productStore.addToCart(configurations.value, product.value)
-  const totalItems = configurations.value.reduce((acc, curr) => acc + curr.quantity, 0)
-  alert(`Successfully added ${totalItems} items to your cart!`)
+  
+  if (!authStore.isLoggedIn) {
+     router.push({ path: '/login', query: { redirect: '/cart' } })
+  } else {
+     const totalItems = configurations.value.reduce((acc, curr) => acc + curr.quantity, 0)
+     alert(`Successfully added ${totalItems} items to your cart!`)
+  }
 }
 
 const orderNow = () => {
@@ -176,8 +170,9 @@ const orderNow = () => {
     productStore.initiateDirectCheckout(configurations.value, product.value)
     router.push('/checkout')
   } else {
-    alert("Please log in to proceed with direct checkout.")
-    router.push('/login')
+    // Persistent purchase intent bridge
+    productStore.initiateDirectCheckout(configurations.value, product.value)
+    router.push({ path: '/login', query: { redirect: '/checkout' } })
   }
 }
 
@@ -214,6 +209,7 @@ import axios from 'axios'
 
 onMounted(() => {
   fetchProduct()
+  fetchReviews()
 })
 </script>
 
@@ -274,11 +270,17 @@ onMounted(() => {
           </div>
         </div>
         
-        <div class="rating-summary">
+        <div class="rating-summary" v-if="reviews.length > 0">
           <div class="stars">
-            <Star v-for="n in 5" :key="n" :size="16" :class="{ 'filled': n <= Math.floor(defaultRating) }" />
+            <Star v-for="n in 5" :key="n" :size="16" :class="{ 'filled': n <= Math.floor(averageRating) }" />
           </div>
-          <span class="review-count">{{ defaultRating }} ({{ reviewCount }} customer reviews)</span>
+          <span class="review-count">{{ averageRating }} ({{ reviews.length }} customer reviews)</span>
+        </div>
+        <div class="rating-summary no-rating" v-else>
+          <div class="stars">
+            <Star v-for="n in 5" :key="n" :size="16" />
+          </div>
+          <span class="review-count">No reviews yet</span>
         </div>
 
         <div class="description" v-html="product.description || `Premium ${product.fabric || 'Cotton'} material tailored for a ${product.fit?.toLowerCase() || 'perfect'} fit.`"></div>
@@ -402,44 +404,46 @@ onMounted(() => {
     </div>
 
     <!-- Reviews Section -->
-    <div class="reviews-section">
-      <div class="grid grid-2">
-        <div class="reviews-list">
-          <h2>Customer Reviews</h2>
-          <div v-if="reviews.length === 0" class="no-reviews">No reviews yet. Be the first to review this product!</div>
-          <div v-for="review in reviews" :key="review.id" class="review-card">
-            <div class="review-header">
-              <span class="author">{{ review.author }}</span>
-              <span class="date">{{ review.date }}</span>
+    <div class="reviews-section" v-if="reviews.length > 0">
+      <div class="section-title-wrap">
+        <h2>Customer Reviews ({{ reviews.length }})</h2>
+        <div class="hr"></div>
+      </div>
+      
+      <div class="reviews-grid">
+        <div v-for="review in reviews" :key="review.id" class="review-card">
+          <div class="review-header">
+            <div class="review-author-wrap">
+              <span class="author">{{ review.name }}</span>
+              <div class="verified-badge">✓ Verified Purchase</div>
             </div>
-            <div class="stars">
-              <Star v-for="n in 5" :key="n" :size="14" :class="{ 'filled': n <= review.rating }" />
+            <span class="date">{{ new Date(review.createdAt).toLocaleDateString() }}</span>
+          </div>
+          
+          <div class="stars">
+            <Star v-for="n in 5" :key="n" :size="12" :class="{ 'filled': n <= review.rating }" />
+          </div>
+          
+          <h4 v-if="review.title" class="review-title">{{ review.title }}</h4>
+          <p class="review-comment">{{ review.comment }}</p>
+          
+          <!-- Review Images -->
+          <div class="review-images" v-if="review.imageUrls?.length">
+            <div v-for="(img, idx) in review.imageUrls" :key="idx" class="review-img-box">
+              <img :src="img" alt="Customer Photo" />
             </div>
-            <p>{{ review.text }}</p>
           </div>
         </div>
-
-        <div class="add-review">
-          <h2>Write a Review</h2>
-          <form class="review-form" @submit.prevent="submitReview">
-            <div class="form-group">
-              <label>Your Name</label>
-              <input type="text" v-model="reviewForm.name" required />
-            </div>
-            <div class="form-group">
-              <label>Rating (1-5)</label>
-              <select v-model.number="reviewForm.rating">
-                <option v-for="n in 5" :key="n" :value="n">{{ n }} Stars</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Your Review</label>
-              <textarea v-model="reviewForm.text" rows="4" required></textarea>
-            </div>
-            <button type="submit" class="btn">Submit Review</button>
-          </form>
-        </div>
       </div>
+    </div>
+
+    <!-- No Reviews State -->
+    <div class="reviews-section empty" v-else>
+       <div class="empty-reviews-card">
+         <Star :size="48" color="#eee" />
+         <h3>No Reviews Yet</h3>
+         <p>Be the first to share your experience with this item. reviews are locked to verified purchases.</p>
+       </div>
     </div>
   </div>
   

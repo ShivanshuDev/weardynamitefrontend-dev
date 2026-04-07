@@ -1,9 +1,10 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const isLogin = ref(true)
 
@@ -28,12 +29,14 @@ const submitForm = async () => {
     if (isLogin.value) {
       if (email.value && password.value) {
         await authStore.login(email.value, password.value)
-        router.push('/profile')
+        const redirect = route.query.redirect || '/profile'
+        router.push(redirect)
       }
     } else {
       if (name.value && email.value && password.value) {
         await authStore.register(name.value, email.value, password.value)
-        router.push('/profile')
+        const redirect = route.query.redirect || '/profile'
+        router.push(redirect)
       }
     }
   } catch (err) {
@@ -49,7 +52,8 @@ const handleGoogleLogin = async () => {
   isLoading.value = true
   try {
     await authStore.loginWithGoogle()
-    router.push('/profile')
+    const redirect = route.query.redirect || '/profile'
+    router.push(redirect)
   } catch (err) {
     error.value = 'Google sign-in failed. Please try again.'
     console.error('Google auth error:', err)

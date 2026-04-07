@@ -48,20 +48,6 @@ const currentCraftSlide = ref(0)
 const nextCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.value + 1) % productStore.siteContent.home.standard.features.length }
 const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.value - 1 + productStore.siteContent.home.standard.features.length) % productStore.siteContent.home.standard.features.length }
 
-// Newsletter Subscription
-const email = ref('')
-const subscribed = ref(false)
-const handleSubscribe = () => {
-  if (email.value) {
-    productStore.subscribers.push({
-      email: email.value,
-      date: new Date().toISOString().split('T')[0]
-    })
-    email.value = ''
-    subscribed.value = true
-    setTimeout(() => subscribed.value = false, 5000)
-  }
-}
 </script>
 
 <template>
@@ -269,7 +255,7 @@ const handleSubscribe = () => {
           <div class="gender-overlay"></div>
           <div class="gender-content">
             <h2>Men's Collection</h2>
-            <RouterLink to="/shop?category=Men" class="btn primary-btn btn-white">Shop Men</RouterLink>
+            <RouterLink to="/shop?gender=Men" class="btn primary-btn btn-white">Shop Men</RouterLink>
           </div>
         </div>
         <!-- Women -->
@@ -277,7 +263,7 @@ const handleSubscribe = () => {
           <div class="gender-overlay"></div>
           <div class="gender-content">
             <h2>Women's Collection</h2>
-            <RouterLink to="/shop?category=Women" class="btn primary-btn btn-white">Shop Women</RouterLink>
+            <RouterLink to="/shop?gender=Women" class="btn primary-btn btn-white">Shop Women</RouterLink>
           </div>
         </div>
         <!-- Kids -->
@@ -285,29 +271,12 @@ const handleSubscribe = () => {
           <div class="gender-overlay"></div>
           <div class="gender-content">
             <h2>Kids' Collection</h2>
-            <RouterLink to="/shop?category=Kids" class="btn primary-btn btn-white">Shop Kids</RouterLink>
+            <RouterLink to="/shop?gender=Kids" class="btn primary-btn btn-white">Shop Kids</RouterLink>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Newsletter Section (Original Restored) -->
-    <section class="newsletter-section">
-      <div class="container newsletter-box">
-        <div class="newsletter-text">
-          <h2>Subscribe to our newsletter</h2>
-          <p>Get the latest updates on new products and upcoming sales directly to your inbox.</p>
-        </div>
-        <form v-if="!subscribed" class="newsletter-form" @submit.prevent="handleSubscribe">
-          <input v-model="email" type="email" placeholder="Enter your email address" required />
-          <button type="submit" class="btn primary-btn btn-white">Subscribe</button>
-        </form>
-        <div v-else class="subscribed-msg">
-          <CheckCircle :size="32" color="#fff" />
-          <p>Welcome to the Dynamite Club!</p>
-        </div>
-      </div>
-    </section>
 
   </div>
 </template>
@@ -528,15 +497,6 @@ const handleSubscribe = () => {
 .gender-content h2 { font-family: var(--font-heading); font-size: 2.2rem; color: #fff; margin-bottom: 20px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); transition: transform 0.3s; }
 
 
-/* Newsletter (Restored) */
-.newsletter-section { background: #111; padding: 80px 20px; }
-.newsletter-box { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 40px; }
-.newsletter-text { flex: 1; min-width: 300px; color: #fff; }
-.newsletter-text h2 { font-family: var(--font-heading); font-size: 2.2rem; margin-bottom: 10px; color: #fff !important; }
-.newsletter-text p { color: #ccc; font-size: 1.05rem; }
-.newsletter-form { flex: 1; min-width: 300px; display: flex; gap: 15px; }
-.newsletter-form input { flex: 1; padding: 15px 20px; border: none; border-radius: 4px; font-size: 1rem; }
-.newsletter-form button { padding: 0 30px; font-weight: 600; cursor: pointer; }
 
 @media (max-width: 992px) {
   .slide-content h1 { font-size: 3.5rem; }
@@ -562,7 +522,5 @@ const handleSubscribe = () => {
   .mega-text-box { padding: 20px; text-align: center; background: rgba(0,0,0,0.6); border-radius: 8px; }
   .mega-text-box h2 { font-size: 1.8rem; }
   .product-grid { grid-template-columns: 1fr; }
-  .newsletter-form { flex-direction: column; }
-  .newsletter-form input, .newsletter-form button { width: 100%; padding: 15px; }
 }
 </style>

@@ -1,25 +1,71 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useProductStore } from '../stores/productStore'
 import api from '../utils/api'
+import { MapPin, Plus, Check, Home, Landmark, Briefcase } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const productStore = useProductStore()
 
 // Navigation guards
-if (!authStore.isLoggedIn) router.push('/login')
+if (!authStore.isLoggedIn) router.push({ path: '/login', query: { redirect: '/checkout' } })
 if (productStore.checkoutItems.length === 0) router.push('/cart')
 
-const selectedAddressId = ref(authStore.defaultAddress?.id || null)
+const selectedAddressId = ref(null)
 const paymentMethod = ref('card')
 const acceptTerms = ref(false)
 const isProcessing = ref(false)
 const paymentError = ref('')
 const couponCode = ref('')
 const couponStatus = ref('')
+
+// Address Form State
+const showAddAddress = ref(false)
+const isSavingAddress = ref(false)
+const newAddress = ref({
+  name: 'Home',
+  fullName: authStore.user?.name || '',
+  phone: '',
+  street: '',
+  city: '',
+  state: '',
+  zip: '',
+  country: 'India',
+  isDefault: false
+})
+
+onMounted(async () => {
+  await authStore.fetchAddresses();
+  if (authStore.defaultAddress) {
+    selectedAddressId.value = authStore.defaultAddress.id;
+  } else if (authStore.addresses.length > 0) {
+    selectedAddressId.value = authStore.addresses[0].id;
+  }
+})
+
+const saveNewAddress = async () => {
+  if (!newAddress.value.street || !newAddress.value.city || !newAddress.value.phone) {
+    return alert('Please fill in all required fields.')
+  }
+  
+  isSavingAddress.value = true
+  try {
+    const saved = await authStore.addAddress(newAddress.value)
+    selectedAddressId.value = saved.addressId || saved.id
+    showAddAddress.value = false
+    // Reset form
+    newAddress.value = {
+      name: 'Home', fullName: authStore.user?.name || '', phone: '', street: '', city: '', state: '', zip: '', country: 'India', isDefault: false
+    }
+  } catch (err) {
+    alert('Failed to save address. Please try again.')
+  } finally {
+    isSavingAddress.value = false
+  }
+}
 
 const applyCoupon = () => {
   if (!couponCode.value) return
@@ -36,7 +82,14 @@ const placeOrder = async () => {
   if (paymentMethod.value === 'cod' && !productStore.orderSummary.total > 0) return alert('Invalid order amount.')
   if (!acceptTerms.value) return alert('Please accept the terms and conditions.')
 
-  const address = authStore.addresses.find(a => a.id === selectedAddressId.value)
+  const address = authStore.addresses.find(a => a.id.toString() === selectedAddressId.value.toString())
+  
+  if (!address) {
+    console.error('[CHECKOUT ERROR] Selected address not found in store:', selectedAddressId.value)
+    return alert('Please select a valid delivery address or add a new one in your profile.')
+  }
+
+  console.log('[CHECKOUT DEBUG] Processing selection for PayU transaction:', { userId: authStore.user.id, addressId: address.id, addressLabel: address.name })
   
   isProcessing.value = true
   
@@ -84,6 +137,7 @@ const placeOrder = async () => {
         email: authStore.user.email,
         phone: address.phone,
         addressId: address.id,
+        address: address, // Pass full address for backend snapshot
         items: productStore.checkoutItems.map(item => ({
           productId: item.productId,
           name: item.name,
@@ -101,10 +155,10 @@ const placeOrder = async () => {
       
       const form = document.createElement('form');
       form.method = 'POST';
-      form.action = 'https://test.payu.in/_payment'; 
+      form.action = params.action; 
 
       for (const key in params) {
-        if (params.hasOwnProperty(key)) {
+        if (params.hasOwnProperty(key) && key !== 'action') {
           const hiddenField = document.createElement('input');
           hiddenField.type = 'hidden';
           hiddenField.name = key;
@@ -144,8 +198,77 @@ const placeOrder = async () => {
         
         <!-- Step 1: Address -->
         <section class="checkout-step">
-          <h2>1. Shipping Address</h2>
-          <div v-if="authStore.addresses.length > 0" class="address-options">
+          <div class="step-header">
+            <h2>1. Shipping Address</h2>
+            <button v-if="!showAddAddress" class="btn-add-address" @click="showAddAddress = true">
+              <Plus size="16" /> Add New Address
+            </button>
+            <button v-else class="btn-cancel-address" @click="showAddAddress = false">
+              Cancel
+            </button>
+          </div>
+          
+          <!-- In-Place Add Address Form -->
+          <div v-if="showAddAddress" class="add-address-form animate-slide-down">
+             <div class="form-grid">
+                <div class="form-group full">
+                   <label>Address Nickname (e.g. Home, Office)</label>
+                   <div class="nickname-chips">
+                      <button 
+                        v-for="name in ['Home', 'Office', 'Other']" 
+                        :key="name" 
+                        type="button"
+                        :class="{ active: newAddress.name === name }"
+                        @click="newAddress.name = name"
+                      >
+                         <Home v-if="name === 'Home'" size="14" />
+                         <Briefcase v-if="name === 'Office'" size="14" />
+                         <MapPin v-if="name === 'Other'" size="14" />
+                         {{ name }}
+                      </button>
+                   </div>
+                </div>
+                <div class="form-group">
+                   <label>Receiver's Full Name</label>
+                   <input v-model="newAddress.fullName" placeholder="Full Name" />
+                </div>
+                <div class="form-group">
+                   <label>Phone Number</label>
+                   <input v-model="newAddress.phone" placeholder="Phone Number" />
+                </div>
+                <div class="form-group full">
+                   <label>Street Address / Area</label>
+                   <input v-model="newAddress.street" placeholder="House No, Building, Street Name" />
+                </div>
+                <div class="form-group">
+                   <label>City</label>
+                   <input v-model="newAddress.city" placeholder="City" />
+                </div>
+                <div class="form-group">
+                   <label>State</label>
+                   <input v-model="newAddress.state" placeholder="State" />
+                </div>
+                <div class="form-group">
+                   <label>Pincode / Zip</label>
+                   <input v-model="newAddress.zip" placeholder="Pincode" />
+                </div>
+                <div class="form-group">
+                   <label>Country</label>
+                   <input v-model="newAddress.country" disabled />
+                </div>
+             </div>
+             <div class="form-actions">
+                <label class="default-check">
+                   <input type="checkbox" v-model="newAddress.isDefault" />
+                   Set as Default Address
+                </label>
+                <button class="btn primary-btn save-addr-btn" @click="saveNewAddress" :disabled="isSavingAddress">
+                   {{ isSavingAddress ? 'Saving...' : 'Save and Use This Address' }}
+                </button>
+             </div>
+          </div>
+
+          <div v-if="authStore.addresses.length > 0 && !showAddAddress" class="address-options">
             <div 
               v-for="address in authStore.addresses" 
               :key="address.id"
@@ -154,22 +277,26 @@ const placeOrder = async () => {
               @click="selectedAddressId = address.id"
             >
               <div class="radio-select">
-                <input type="radio" :value="address.id" v-model="selectedAddressId" />
+                <div class="custom-radio" :class="{ checked: selectedAddressId === address.id }">
+                   <Check v-if="selectedAddressId === address.id" :size="12" />
+                </div>
               </div>
               <div class="address-details">
-                <strong>{{ address.name }} - {{ address.fullName }}</strong>
+                <div class="card-header">
+                   <strong>{{ address.name }} - {{ address.fullName }}</strong>
+                   <span v-if="address.isDefault" class="badge-default">DEFAULT</span>
+                </div>
                 <p>{{ address.street }}, {{ address.city }}</p>
                 <p>{{ address.state }}, {{ address.zip }}, {{ address.country }}</p>
                 <p>{{ address.phone }}</p>
               </div>
             </div>
-            <div class="add-address-prompt">
-              <p>Need to ship elsewhere? <RouterLink to="/profile">Add a new address in your profile</RouterLink>.</p>
-            </div>
           </div>
-          <div v-else class="no-address">
-            <p>You don't have any saved addresses.</p>
-            <RouterLink to="/profile" class="btn secondary">Add Address to Continue</RouterLink>
+          <div v-else-if="!showAddAddress" class="no-address">
+            <p>You don't have any saved addresses. Please add one to continue.</p>
+            <button class="btn primary-btn" @click="showAddAddress = true">
+               <Plus size="16" /> Add Address
+            </button>
           </div>
         </section>
 
@@ -428,6 +555,182 @@ const placeOrder = async () => {
 .add-address-prompt {
   margin-top: 15px;
   font-size: 0.95rem;
+}
+
+/* New Logistics Styles */
+.step-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.btn-add-address {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f4f4f4;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: #000;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-address:hover {
+  background: #000;
+  color: #fff;
+}
+
+.btn-cancel-address {
+  background: none;
+  border: none;
+  color: #666;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.add-address-form {
+  background: #fff;
+  border: 2px solid #000;
+  border-radius: 8px;
+  padding: 25px;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-group.full {
+  grid-column: span 2;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  color: #444;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #eee;
+  background: #fbfbfb;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.form-group input:focus {
+  border-color: #000;
+  background: #fff;
+  outline: none;
+}
+
+.nickname-chips {
+  display: flex;
+  gap: 10px;
+}
+
+.nickname-chips button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid #eee;
+  background: #fff;
+  border-radius: 100px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nickname-chips button.active {
+  background: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+.form-actions {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.default-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.save-addr-btn {
+  width: auto;
+  padding: 12px 25px;
+  font-size: 0.9rem;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.custom-radio {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #ddd;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  transition: all 0.2s;
+}
+
+.custom-radio.checked {
+  border-color: #000;
+  background: #000;
+  color: #fff;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.badge-default {
+  background: #222;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
 }
 
 .add-address-prompt a {

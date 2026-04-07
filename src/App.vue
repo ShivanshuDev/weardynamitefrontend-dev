@@ -1,7 +1,20 @@
 <script setup>
+import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
+import { useAuthStore } from './stores/authStore'
+
+const authStore = useAuthStore()
+
+onMounted(async () => {
+  if (authStore.isLoggedIn) {
+    await Promise.all([
+      authStore.fetchOrders(),
+      authStore.fetchAddresses()
+    ]);
+  }
+})
 </script>
 
 <template>

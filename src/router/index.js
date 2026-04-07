@@ -112,6 +112,11 @@ const routes = [
     path: '/privacy-policy',
     name: 'privacy-policy',
     component: () => import('../views/PrivacyPolicyView.vue')
+  },
+  {
+    path: '/add-review',
+    name: 'add-review',
+    component: () => import('../views/AddReviewView.vue')
   }
 ]
 
