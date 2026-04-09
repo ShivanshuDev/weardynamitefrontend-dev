@@ -7,13 +7,13 @@ const productStore = useProductStore()
 <template>
   <div class="policy-view container">
     <div class="policy-card">
-      <h1>Shipping & Returns</h1>
+      <h1>{{ productStore.siteContent.policies.shippingAndReturns.pageTitle }}</h1>
       <div class="policy-content">
-        <h2>Our Shipping Process</h2>
-        <p>{{ productStore.siteContent.policies.shipping }}</p>
+        <h2>{{ productStore.siteContent.policies.shippingAndReturns.shippingProcess.title }}</h2>
+        <p>{{ productStore.siteContent.policies.shippingAndReturns.shippingProcess.content }}</p>
         
-        <h2>Return & Refund Policy</h2>
-        <p>{{ productStore.siteContent.policies.returns }}</p>
+        <h2>{{ productStore.siteContent.policies.shippingAndReturns.refundPolicy.title }}</h2>
+        <p>{{ productStore.siteContent.policies.shippingAndReturns.refundPolicy.content }}</p>
         
         <p>For any queries, please contact our support team at {{ productStore.siteContent.contact.direct.email }}.</p>
       </div>

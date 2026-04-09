@@ -109,6 +109,11 @@ const routes = [
     component: () => import('../views/ShippingReturnsView.vue')
   },
   {
+    path: '/terms',
+    name: 'terms',
+    component: () => import('../views/TermsOfServiceView.vue')
+  },
+  {
     path: '/privacy-policy',
     name: 'privacy-policy',
     component: () => import('../views/PrivacyPolicyView.vue')

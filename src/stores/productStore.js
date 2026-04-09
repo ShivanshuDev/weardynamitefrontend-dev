@@ -34,72 +34,33 @@ export const useProductStore = defineStore('products', {
       'USD': { symbol: '$', rate: 0.012 }, // 1/83.5
       'EUR': { symbol: '€', rate: 0.011 }
     },
-    // Admin Managed Content (CMS)
+    // Admin Managed Content (CMS) - Populated from fetchCms
     siteContent: {
-      home: {
-        carousel: [
-          {
-            image: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e07?q=80&w=2070',
-            title: 'Unleash Your\nDynamite Style',
-            subtitle: 'Premium apparel engineered for the modern individual.',
-            button1: { text: 'Shop The Collection', link: '/shop' },
-            button2: { text: 'Our Story', link: '/about' }
-          },
-          {
-            image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=2070',
-            title: 'Spring Collection 2026',
-            subtitle: 'Fresh aesthetics for the vibrant season ahead.',
-            button1: { text: 'Shop New Arrivals', link: '/shop?category=Men' },
-            button2: { text: '', link: '' }
-          }
-        ],
-        megaPromos: [
-          { title: 'Summer Flash Sale', subtitle: 'Up to 50% Off', image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=2000', link: '/shop' },
-          { title: 'New Basics', subtitle: 'Buy 2 Get 1 Free', image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=2000', link: '/shop' },
-          { title: 'Premium Quality', subtitle: 'Essential T-Shirts', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=2000', link: '/shop' },
-          { title: 'Make It Yours', subtitle: 'Custom Embroidery', image: 'https://images.unsplash.com/photo-1605333556536-eebdb8aecebf?q=80&w=2000', link: '/customize' }
-        ],
-        standard: {
-          title: 'The Wear Dynamite Standard',
-          subtitle: 'Uncompromising quality from thread to finish.',
-          features: [
-            { title: '100% Organic Fabric', description: 'Sourced from sustainable farms, our super-combed cotton ensures breathability.', image: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633' },
-            { title: 'Heavyweight 240+ GSM', description: 'Built to last. The dense construction ensures garment retains its shape.', image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7' },
-            { title: 'HD Screen Printing', description: 'Eco-friendly plastisol inks provide vibrant, crack-resistant graphics.', image: 'https://images.unsplash.com/photo-1622470953794-aa01db4b2568' },
-            { title: 'Precision Embroidery', description: 'High-tensile polyester threads guarantee logos never fray.', image: 'https://images.unsplash.com/photo-1605333556536-eebdb8aecebf' }
-          ]
+      home: { 
+        carousel: [], 
+        megaPromos: [], 
+        productSections: { newArrivals: {}, bestSellers: {} },
+        standard: { 
+          title: 'Premium Quality',
+          subtitle: 'The Dynamite Promise of Excellence',
+          features: [] 
         }
       },
-      process: {
-        hero: {
-          title: 'Our Process & Craftsmanship',
-          subtitle: 'Take a look behind the curtain. Discover what we have and how we deliver luxury-grade apparel.',
-          image: 'https://images.unsplash.com/photo-1563823293806-03f140026e6d'
-        },
-        steps: [
-          { title: '1. Sourcing & Raw Materials', have: 'Ethical relationships with sustainable cotton farms.', do: 'Before cutting, fabrics undergo tension and washing tests.' },
-          { title: '2. Printing & Embroidery', have: 'Automated HD screen printing presses.', do: 'We apply high-density, crack-resistant inks.' },
-          { title: '3. Quality Control', have: 'Dedicated specialists inspecting every millimeter.', do: 'Garments are ironed, folded, and moisture-protected.' },
-          { title: '4. Rapid Dispatch', have: 'Strategic contracts with top-tier logistics couriers.', do: 'Orders dispatched within 24 hours of placement.' }
-        ]
-      },
-      contact: {
+      process: { hero: {}, steps: [] },
+      contact: { 
         title: 'Contact Us',
-        subtitle: "We'd love to hear from you. Please fill out the form or reach out directly.",
-        direct: {
-          phone: ['+91 8543996159', '+91 8382833516'],
-          email: 'skshivanshu1234@gmail.com'
-        },
-        mapUrl: 'https://www.google.com/maps/embed?pb=...'
+        subtitle: "We'd love to hear from you.",
+        direct: { phone: [], email: '' },
+        mapUrl: ''
       },
       policies: {
-        faq: [
-          { q: 'How long does shipping take?', a: 'Standard delivery takes 3-5 business days across India.' },
-          { q: 'Do you offer international shipping?', a: 'Yes, we ship to over 50 countries globally.' }
-        ],
-        shipping: 'Products are dispatched from our facility within 24 hours...',
-        privacy: 'Your privacy is our top priority...',
-        returns: '30 Days No-Questions-Asked Return Policy.'
+        shippingAndReturns: { 
+          pageTitle: 'Shipping & Returns', 
+          shippingProcess: { title: 'Shipping Process', content: '' },
+          refundPolicy: { title: 'Refund Policy', content: '' }
+        },
+        faq: { pageTitle: 'Frequently Asked Questions', items: [] },
+        privacy: { pageTitle: 'Privacy Policy', content: '' }
       }
     },
     inquiries: [],
@@ -506,6 +467,102 @@ export const useProductStore = defineStore('products', {
     },
     updateSiteContent(section, data) {
       this.siteContent[section] = { ...this.siteContent[section], ...data }
+    },
+    async fetchCms() {
+      try {
+        const response = await api.get('/admin/cms/public');
+        const data = response.data || {};
+        
+        if (data) {
+          // Normalization Layer for Policies (Self-Healing from old strings)
+          const normalizedPolicies = {
+            ...this.siteContent.policies,
+            ...(data.policies || {})
+          };
+
+          // Fix FAQ: If old array, move it to .items
+          if (Array.isArray(data.policies?.faq)) {
+            normalizedPolicies.faq = {
+              pageTitle: 'Frequently Asked Questions',
+              items: data.policies.faq
+            };
+          } else if (data.policies?.faq?.items) {
+             normalizedPolicies.faq = data.policies.faq;
+          }
+
+          // Fix Privacy: If old string, move it to .content
+          if (typeof data.policies?.privacy === 'string') {
+            normalizedPolicies.privacy = {
+              pageTitle: 'Privacy Policy',
+              content: data.policies.privacy
+            };
+          }
+
+          // Fix Terms: If old string, move it to .items
+          if (data.policies?.terms?.items) {
+             normalizedPolicies.terms = {
+               ...data.policies.terms,
+               subtitle: data.policies.terms.subtitle || '',
+               lastUpdated: data.policies.terms.lastUpdated || ''
+             };
+          } else if (typeof data.policies?.terms === 'string') {
+            normalizedPolicies.terms = {
+              pageTitle: 'Terms of Service',
+              subtitle: '',
+              lastUpdated: '',
+              items: [{ title: 'Main Terms', content: data.policies.terms }]
+            };
+          } else if (typeof data.policies?.terms?.content === 'string') {
+            normalizedPolicies.terms = {
+              pageTitle: data.policies.terms.pageTitle || 'Terms of Service',
+              subtitle: data.policies.terms.subtitle || '',
+              lastUpdated: data.policies.terms.lastUpdated || '',
+              items: [{ title: 'Main Terms', content: data.policies.terms.content }]
+            };
+          }
+
+          // Fix Shipping: Map old 'shipping' and 'returns' fields
+          if (typeof data.policies?.shipping === 'string' || typeof data.policies?.returns === 'string') {
+            normalizedPolicies.shippingAndReturns = {
+              pageTitle: 'Shipping & Returns',
+              shippingProcess: { 
+                title: 'Shipping Process', 
+                content: data.policies.shippingAndReturns?.shippingProcess?.content || data.policies.shipping || '' 
+              },
+              refundPolicy: { 
+                title: 'Refund Policy', 
+                content: data.policies.shippingAndReturns?.refundPolicy?.content || data.policies.returns || '' 
+              }
+            }
+          }
+
+          this.siteContent = {
+            ...this.siteContent,
+            ...data,
+            home: {
+              ...this.siteContent.home,
+              ...(data.home || {}),
+              carousel: data.home?.carousel || [],
+              megaPromos: data.home?.megaPromos || [],
+              standard: {
+                ...this.siteContent.home.standard,
+                ...(data.home?.standard || {})
+              }
+            },
+            contact: {
+              ...this.siteContent.contact,
+              ...(data.contact || {}),
+              direct: {
+                ...this.siteContent.contact.direct,
+                ...(data.contact?.direct || {})
+              }
+            },
+            policies: normalizedPolicies
+          };
+        }
+      } catch (err) {
+        console.error('Failed to fetch CMS content:', err);
+      }
     },
     async fetchBlogs() {
       this.blogLoading = true

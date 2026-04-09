@@ -7,9 +7,9 @@ const productStore = useProductStore()
 <template>
   <div class="policy-view container">
     <div class="policy-card">
-      <h1>Privacy Policy</h1>
+      <h1>{{ productStore.siteContent.policies.privacy.pageTitle }}</h1>
       <div class="policy-content">
-        <p>{{ productStore.siteContent.policies.privacy }}</p>
+        <p>{{ productStore.siteContent.policies.privacy.content }}</p>
         
         <p>At Wear Dynamite, we are committed to protecting your personal information and your right to privacy. If you have any questions or concerns about our policy, or our practices with regards to your personal information, please contact us.</p>
         

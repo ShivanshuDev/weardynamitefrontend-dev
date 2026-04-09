@@ -10,13 +10,13 @@ const openIdx = ref(0)
 <template>
   <div class="faq-view container">
     <header class="section-header">
-      <h1 class="page-title">Frequently Asked Questions</h1>
+      <h1 class="page-title">{{ productStore.siteContent.policies.faq.pageTitle }}</h1>
       <p class="subtitle">Everything you need to know about customize, shipping, and returns.</p>
     </header>
 
     <div class="faq-list">
       <div 
-        v-for="(item, idx) in productStore.siteContent.policies.faq" 
+        v-for="(item, idx) in productStore.siteContent.policies.faq.items" 
         :key="idx"
         class="faq-item"
         :class="{ active: openIdx === idx }"

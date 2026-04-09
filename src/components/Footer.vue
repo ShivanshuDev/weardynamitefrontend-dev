@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { Instagram, Facebook, Twitter, Mail, Send, CheckCircle, Info, User, Phone } from 'lucide-vue-next'
 import api from '../utils/api'
 

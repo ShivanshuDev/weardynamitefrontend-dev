@@ -1,10 +1,10 @@
 <script setup>
 import { Mail, Phone, MapPin, CheckCircle } from 'lucide-vue-next'
 import { useProductStore } from '../stores/productStore'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const productStore = useProductStore()
-const content = productStore.siteContent.contact
+const content = computed(() => productStore.siteContent.contact)
 
 const form = ref({ name: '', mobile: '', email: '', message: '' })
 const submitted = ref(false)

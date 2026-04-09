@@ -27,9 +27,11 @@ const currentSlide = ref(0)
 let slideInterval = null
 
 const nextSlide = () => {
+  if (!slides.value?.length) return
   currentSlide.value = (currentSlide.value + 1) % slides.value.length
 }
 const prevSlide = () => {
+  if (!slides.value?.length) return
   currentSlide.value = (currentSlide.value - 1 + slides.value.length) % slides.value.length
 }
 
@@ -37,6 +39,7 @@ onMounted(() => {
   productStore.fetchProducts()
   productStore.fetchNewArrivals()
   productStore.fetchBestSellers()
+  productStore.fetchCms()
   slideInterval = setInterval(nextSlide, 6000)
 })
 onUnmounted(() => {
@@ -47,7 +50,20 @@ onUnmounted(() => {
 const currentCraftSlide = ref(0)
 const nextCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.value + 1) % productStore.siteContent.home.standard.features.length }
 const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.value - 1 + productStore.siteContent.home.standard.features.length) % productStore.siteContent.home.standard.features.length }
-
+const getAlignmentClasses = (align) => {
+  const map = {
+    'top-left': 'content-top content-left',
+    'top-center': 'content-top content-center',
+    'top-right': 'content-top content-right',
+    'middle-left': 'content-middle content-left',
+    'middle-center': 'content-middle content-center',
+    'middle-right': 'content-middle content-right',
+    'bottom-left': 'content-bottom content-left',
+    'bottom-center': 'content-bottom content-center',
+    'bottom-right': 'content-bottom content-right'
+  }
+  return map[align] || map['middle-left']
+}
 </script>
 
 <template>
@@ -63,13 +79,27 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
       >
         <div class="slide-bg" :style="{ backgroundImage: `url(${productStore.resolveImageUrl(slide.image)})` }"></div>
         <div class="slide-overlay"></div>
-        <div class="slide-content container">
-          <h1>{{ slide.title }}</h1>
-          <p>{{ slide.subtitle }}</p>
-          <div class="hero-actions">
-            <RouterLink v-if="slide.button1?.link" :to="slide.button1.link" class="btn primary-btn btn-large transparent">{{ slide.button1.text }}</RouterLink>
-            <RouterLink v-if="slide.button2?.link" :to="slide.button2.link" class="btn secondary-btn btn-large transparent">{{ slide.button2.text }}</RouterLink>
-          </div>
+        
+        <div class="slide-content-container" :class="getAlignmentClasses(slide.align)">
+           <div class="slide-content">
+             <h1 class="drop-shadow-2xl">{{ slide.title }}</h1>
+             <p>{{ slide.subtitle }}</p>
+             <div class="hero-actions" :class="slide.align?.includes('center') ? 'justify-center' : (slide.align?.includes('right') ? 'justify-end' : 'justify-start')">
+               <RouterLink 
+                 v-for="(btn, idx) in (slide.buttons || [])" 
+                 :key="idx" 
+                 :to="btn.link || '/'" 
+                 class="btn btn-large flex items-center justify-center whitespace-nowrap"
+                 :style="{ 
+                   backgroundColor: btn.bg || '#000', 
+                   color: btn.textColor || '#fff',
+                   border: btn.border ? `2px solid ${btn.textColor || '#fff'}` : 'none'
+                 }"
+               >
+                 {{ btn.text }}
+               </RouterLink>
+             </div>
+           </div>
         </div>
       </div>
       
@@ -91,25 +121,11 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
     <!-- Trust Features Bar (Original Restored) -->
     <section class="trust-features container">
       <div class="trust-grid">
-        <div class="trust-item">
-          <Truck :size="36" color="#000" />
+        <div v-for="(feat, idx) in (productStore.siteContent?.home?.trustFeatures || [])" :key="idx" class="trust-item">
+          <component :is="feat.icon === 'Truck' ? Truck : (feat.icon === 'RotateCcw' ? RotateCcw : ShieldCheck)" :size="36" color="#000" />
           <div class="trust-text">
-            <h4>Free Shipping</h4>
-            <p>On all orders above $100</p>
-          </div>
-        </div>
-        <div class="trust-item">
-          <RotateCcw :size="36" color="#000" />
-          <div class="trust-text">
-            <h4>30 Days Return</h4>
-            <p>No questions asked policy</p>
-          </div>
-        </div>
-        <div class="trust-item">
-          <ShieldCheck :size="36" color="#000" />
-          <div class="trust-text">
-            <h4>Secure Payments</h4>
-            <p>100% secure encrypted checkout</p>
+            <h4>{{ feat.title }}</h4>
+            <p>{{ feat.subtitle }}</p>
           </div>
         </div>
       </div>
@@ -151,63 +167,40 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
       </div>
     </section>
 
-    <!-- Our Craftsmanship / Quality Features (Full Width Slider) -->
-    <section class="craftsmanship-section">
-      <div class="section-header container">
-        <div>
-          <h2 class="section-title">{{ productStore.siteContent.home.standard.title }}</h2>
-          <p class="section-subtitle">{{ productStore.siteContent.home.standard.subtitle }}</p>
-        </div>
-      </div>
-      
-      <div class="craft-slider-container">
-        <div class="craft-slider-track" :style="{ transform: `translateX(-${currentCraftSlide * 100}%)` }">
-          
-          <div 
-            v-for="(feature, idx) in productStore.siteContent.home.standard.features" 
-            :key="idx"
-            class="craft-slide"
-          >
-            <img :src="productStore.resolveImageUrl(feature.image)" :alt="feature.title" />
-            <div class="craft-overlay"></div>
-            <div class="craft-content container">
-              <h3>{{ feature.title }}</h3>
-              <p>{{ feature.description }}</p>
-            </div>
-          </div>
 
-        </div>
-
-        <!-- Craft Slider Controls -->
-        <button class="slider-btn prev" @click="prevCraftSlide"><ChevronLeft :size="36" color="#fff" /></button>
-        <button class="slider-btn next" @click="nextCraftSlide"><ChevronRight :size="36" color="#fff" /></button>
-        <div class="slider-dots">
-          <span 
-            v-for="i in productStore.siteContent.home.standard.features.length" :key="i" class="dot" 
-            :class="{ active: (i-1) === currentCraftSlide }" 
-            @click="currentCraftSlide = i-1"
-          ></span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Brand Video Statement (Enhanced) -->
+    <!-- Brand Video Statement (Advanced Stylization) -->
     <section class="brand-video-section">
       <div class="container branding-layout">
         <div class="brand-text">
-           <h2>Move With Explosive Confidence.</h2>
-           <p>We source only the finest fabrics worldwide to create garments that move with you, not against you. Engineered to withstand the rigors of modern life while looking effortlessly chic.</p>
-           <ul class="perk-list">
-             <li>✓ Breathable Organic Cottons</li>
-             <li>✓ 30-Day Limitless Returns</li>
-             <li>✓ Lightning Fast Delivery</li>
+           <h2 :style="{ 
+             color: productStore.siteContent?.home?.videoBlock?.title?.color, 
+             fontSize: (productStore.siteContent?.home?.videoBlock?.title?.size || 48) + 'px',
+             fontWeight: productStore.siteContent?.home?.videoBlock?.title?.bold ? '900' : '400',
+             fontStyle: productStore.siteContent?.home?.videoBlock?.title?.italic ? 'italic' : 'normal',
+             lineHeight: '1.1'
+           }">{{ productStore.siteContent?.home?.videoBlock?.title?.text }}</h2>
+           
+           <p :style="{
+             color: productStore.siteContent?.home?.videoBlock?.description?.color,
+             fontSize: (productStore.siteContent?.home?.videoBlock?.description?.size || 16) + 'px',
+             fontWeight: productStore.siteContent?.home?.videoBlock?.description?.bold ? '700' : '400',
+             fontStyle: productStore.siteContent?.home?.videoBlock?.description?.italic ? 'italic' : 'normal',
+             marginTop: '2rem'
+           }">{{ productStore.siteContent?.home?.videoBlock?.description?.text }}</p>
+
+           <ul class="perk-list" :style="{
+             color: productStore.siteContent?.home?.videoBlock?.perkStyle?.color,
+             fontSize: (productStore.siteContent?.home?.videoBlock?.perkStyle?.size || 10) + 'px',
+             fontWeight: productStore.siteContent?.home?.videoBlock?.perkStyle?.bold ? '900' : '500'
+           }">
+             <li v-for="(perk, idx) in (productStore.siteContent?.home?.videoBlock?.perks || [])" :key="idx">✓ {{ perk }}</li>
            </ul>
         </div>
         <div class="video-container">
            <div class="play-btn-wrapper"><Play :size="48" color="#fff" fill="#fff"/></div>
-           <video autoplay muted loop playsinline>
-             <source src="https://assets.mixkit.co/videos/preview/mixkit-fashion-model-posing-in-a-studio-setting-34444-large.mp4" type="video/mp4" />
-           </video>
+           <video :key="productStore.siteContent?.home?.videoBlock?.videoUrl" autoplay muted loop playsinline class="w-full h-full object-cover">
+            <source :src="productStore.resolveImageUrl(productStore.siteContent?.home?.videoBlock?.videoUrl)" type="video/mp4" />
+          </video>
         </div>
       </div>
     </section>
@@ -226,12 +219,21 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
       </div>
     </section>
 
-    <!-- Advertisement Banner (Enhanced) -->
-    <section class="ad-banner container">
+    <!-- Advertisement Banner (Advanced Stylization) -->
+    <section class="ad-banner container" :style="{ backgroundColor: productStore.siteContent?.home?.vipBanner?.bg, borderRadius: '48px' }">
       <div class="ad-content">
-        <h2>Unlock The VIP Experience</h2>
-        <p>Join the <strong>Dynamite Club</strong> today and get exclusive early access to our limited drops, free premium shipping on all orders, and 15% off your very first purchase.</p>
-        <RouterLink to="/login" class="btn primary-btn btn-large">Become a Member</RouterLink>
+        <h2 :style="{ 
+          color: productStore.siteContent?.home?.vipBanner?.title?.color, 
+          fontSize: (productStore.siteContent?.home?.vipBanner?.title?.size || 32) + 'px',
+          fontWeight: productStore.siteContent?.home?.vipBanner?.title?.bold ? '900' : '400' 
+        }">{{ productStore.siteContent?.home?.vipBanner?.title?.text }}</h2>
+        
+        <p :style="{ 
+          color: productStore.siteContent?.home?.vipBanner?.description?.color, 
+          fontSize: (productStore.siteContent?.home?.vipBanner?.description?.size || 14) + 'px' 
+        }">{{ productStore.siteContent?.home?.vipBanner?.description?.text }}</p>
+        
+        <RouterLink :to="productStore.siteContent?.home?.vipBanner?.link || '/'" class="btn primary-btn btn-large">{{ productStore.siteContent?.home?.vipBanner?.buttonText }}</RouterLink>
       </div>
     </section>
 
@@ -250,28 +252,16 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
     <!-- Gender Collections (New Request) -->
     <section class="gender-collections container">
       <div class="gender-grid">
-        <!-- Men -->
-        <div class="gender-banner men-bg">
+        <div 
+          v-for="(cat, idx) in (productStore.siteContent?.home?.categories || [])" 
+          :key="idx"
+          class="gender-banner"
+          :style="{ backgroundImage: cat.image ? `url(${productStore.resolveImageUrl(cat.image)})` : 'none' }"
+        >
           <div class="gender-overlay"></div>
           <div class="gender-content">
-            <h2>Men's Collection</h2>
-            <RouterLink to="/shop?gender=Men" class="btn primary-btn btn-white">Shop Men</RouterLink>
-          </div>
-        </div>
-        <!-- Women -->
-        <div class="gender-banner women-bg">
-          <div class="gender-overlay"></div>
-          <div class="gender-content">
-            <h2>Women's Collection</h2>
-            <RouterLink to="/shop?gender=Women" class="btn primary-btn btn-white">Shop Women</RouterLink>
-          </div>
-        </div>
-        <!-- Kids -->
-        <div class="gender-banner kids-bg">
-          <div class="gender-overlay"></div>
-          <div class="gender-content">
-            <h2>Kids' Collection</h2>
-            <RouterLink to="/shop?gender=Kids" class="btn primary-btn btn-white">Shop Kids</RouterLink>
+            <h2>{{ cat.title }}</h2>
+            <RouterLink :to="cat.link" class="btn primary-btn btn-white">Shop Now</RouterLink>
           </div>
         </div>
       </div>
@@ -302,14 +292,12 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
   top: 0; left: 0;
   width: 100%; height: 100%;
   opacity: 0;
-  transition: opacity 1s ease-in-out;
+  transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
-  align-items: center;
 }
-
 .slide.active {
   opacity: 1;
-  z-index: 2;
+  z-index: 5;
 }
 
 .slide-bg {
@@ -335,15 +323,37 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
   z-index: 2;
 }
 
-.slide-content {
+.slide-content-container {
   position: relative;
-  z-index: 3;
-  color: #fff;
-  max-width: 700px;
-  transform: translateY(20px);
-  opacity: 0;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  display: flex;
   transition: all 0.8s ease;
-  transition-delay: 0.3s;
+  padding: 0 8%;
+  box-sizing: border-box;
+}
+
+/* 9-Point Alignment Grid */
+.content-top { align-items: flex-start; padding-top: 10vh; }
+.content-middle { align-items: center; }
+.content-bottom { align-items: flex-end; padding-bottom: 15vh; }
+
+.content-left { justify-content: flex-start; text-align: left; }
+.content-center { justify-content: center; text-align: center; }
+.content-right { justify-content: flex-end; text-align: right; }
+
+.justify-start { justify-content: flex-start; }
+.justify-center { justify-content: center; }
+.justify-end { justify-content: flex-end; }
+
+.slide-content {
+  color: #fff;
+  max-width: 800px;
+  transform: translateY(40px);
+  opacity: 0;
+  transition: all 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-delay: 0.5s;
 }
 
 .slide.active .slide-content {
@@ -353,22 +363,28 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
 
 .slide-content h1 {
   font-family: var(--font-heading);
-  font-size: 4.5rem;
-  line-height: 1.1;
-  margin-bottom: 25px;
-  text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  font-size: clamp(2.5rem, 6vw, 4.8rem);
+  line-height: 0.9;
+  margin-bottom: 20px;
+  text-shadow: 0 10px 40px rgba(0,0,0,0.5);
   white-space: pre-line;
   color: #fff !important;
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
 }
 
 .slide-content p {
-  font-size: 1.25rem;
-  margin-bottom: 40px;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  margin-bottom: 45px;
   line-height: 1.6;
-  opacity: 0.95;
-  font-weight: 300;
+  opacity: 0.7;
+  font-weight: 700;
   text-shadow: 0 2px 10px rgba(0,0,0,0.5);
   color: #fff !important;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
 }
 
 /* Slider Controls */
@@ -376,7 +392,7 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 10;
+  z-index: 20;
   background: rgba(0,0,0,0.3);
   border: none;
   cursor: pointer;
@@ -395,7 +411,7 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
   bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 10;
+  z-index: 20;
   display: flex;
   gap: 12px;
 }
@@ -410,9 +426,27 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
   background: rgba(255,255,255,1);
 }
 
-.hero-actions { display: flex; gap: 20px; }
-.btn-large { padding: 16px 35px; font-size: 1.1rem; }
-.transparent { background: transparent; color: #fff; border: 2px solid #fff; }
+.hero-actions { display: flex; gap: 15px; flex-wrap: nowrap; align-items: center; }
+.btn-large { 
+  height: 58px;
+  padding: 0 45px; 
+  font-size: 0.75rem; 
+  font-weight: 900; 
+  text-transform: uppercase; 
+  letter-spacing: 0.25em; 
+  border-radius: 9999px; 
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.btn-large:hover { 
+  transform: translateY(-5px) scale(1.05); 
+  box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+}
 .transparent:hover { background: #fff; color: #000; border-color: #fff; }
 
 /* Trust Bar (Restored) */
@@ -469,7 +503,7 @@ const prevCraftSlide = () => { currentCraftSlide.value = (currentCraftSlide.valu
 .play-btn-wrapper { position: absolute; top:50%; left:50%; transform: translate(-50%, -50%); z-index:2; width:80px; height:80px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; border: 2px solid rgba(255,255,255,0.2); }
 
 /* VIP Banner */
-.ad-banner { background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%); text-align: center; padding: 80px 20px; border-radius: 12px; margin-bottom: 100px; position: relative; overflow: hidden; }
+.ad-banner { text-align: center; padding: 120px 40px; margin-bottom: 100px; position: relative; overflow: hidden; transition: background-color 0.4s ease; }
 .ad-banner::before { content: ''; position: absolute; top:-50%; right:-20%; width:600px; height:600px; background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%); border-radius: 50%; z-index:1; }
 .ad-content { position: relative; z-index:2; max-width: 650px; margin: 0 auto; }
 .ad-content h2 { font-family: var(--font-heading); font-size: 2.8rem; margin-bottom: 20px; color: #111; }

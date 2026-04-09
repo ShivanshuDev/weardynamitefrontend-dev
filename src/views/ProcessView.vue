@@ -1,21 +1,41 @@
 <script setup>
-import { ShieldCheck, Printer, Package, Truck, Info } from 'lucide-vue-next'
+import { onMounted } from 'vue'
+import { ShieldCheck, Printer, Package, Truck, Info, Zap } from 'lucide-vue-next'
 import { useProductStore } from '../stores/productStore'
 
 const productStore = useProductStore()
 
 // Mock mapping icons to steps (since we store text in CMS)
-const stepIcons = [ShieldCheck, Printer, Package, Truck]
+const stepIcons = [Zap, Printer, Package, Truck, ShieldCheck]
+
+onMounted(() => {
+  productStore.fetchCms()
+})
 </script>
 
 <template>
   <div class="process-view">
     <!-- Hero Banner -->
-    <div class="process-hero" :style="{ backgroundImage: `url(${productStore.siteContent.process.hero.image})` }">
+    <div 
+      class="process-hero" 
+      :style="{ backgroundImage: `url(${productStore.resolveImageUrl(productStore.siteContent.process?.hero?.image)})` }"
+    >
       <div class="hero-overlay"></div>
       <div class="hero-content container">
-        <h1>{{ productStore.siteContent.process.hero.title }}</h1>
-        <p>{{ productStore.siteContent.process.hero.subtitle }}</p>
+        <h1 :style="{ 
+          color: productStore.siteContent.process?.hero?.title?.color,
+          fontSize: (productStore.siteContent.process?.hero?.title?.size || 64) + 'px',
+          fontWeight: productStore.siteContent.process?.hero?.title?.bold ? '900' : '400',
+          fontStyle: productStore.siteContent.process?.hero?.title?.italic ? 'italic' : 'normal'
+        }">
+          {{ productStore.siteContent.process?.hero?.title?.text || 'Our Process' }}
+        </h1>
+        <p :style="{ 
+          color: productStore.siteContent.process?.hero?.subtitle?.color,
+          fontSize: (productStore.siteContent.process?.hero?.subtitle?.size || 20) + 'px'
+        }">
+          {{ productStore.siteContent.process?.hero?.subtitle?.text || 'The journey of craftsmanship.' }}
+        </p>
       </div>
     </div>
 
@@ -23,32 +43,54 @@ const stepIcons = [ShieldCheck, Printer, Package, Truck]
     <div class="timeline-section container">
       
       <div 
-        v-for="(step, idx) in productStore.siteContent.process.steps" 
+        v-for="(step, idx) in (productStore.siteContent.process?.steps || [])" 
         :key="idx"
         class="timeline-step"
         :class="{ alt: idx % 2 !== 0 }"
       >
         <template v-if="idx % 2 === 0">
           <div class="step-icon">
-            <div class="icon-circle">
+            <div class="icon-circle shadow-xl">
               <component :is="stepIcons[idx % stepIcons.length]" :size="40" />
             </div>
           </div>
           <div class="step-content">
-            <h3>{{ step.title }}</h3>
-            <p><strong>What we have:</strong> {{ step.have }}</p>
-            <p><strong>What we do:</strong> {{ step.do }}</p>
+            <h3 :style="{ 
+              color: step.title?.color, 
+              fontSize: (step.title?.size || 32) + 'px',
+              fontWeight: step.title?.bold ? '900' : '400',
+              fontStyle: step.title?.italic ? 'italic' : 'normal'
+            }">
+              {{ step.title?.text || step.title }}
+            </h3>
+            <p :style="{ color: step.have?.color, fontSize: (step.have?.size || 14) + 'px' }">
+              <strong>What we have:</strong> {{ step.have?.text || step.have }}
+            </p>
+            <p :style="{ color: step.do?.color, fontSize: (step.do?.size || 14) + 'px' }">
+              <strong>What we do:</strong> {{ step.do?.text || step.do }}
+            </p>
           </div>
         </template>
         
         <template v-else>
           <div class="step-content">
-            <h3>{{ step.title }}</h3>
-            <p><strong>What we have:</strong> {{ step.have }}</p>
-            <p><strong>What we do:</strong> {{ step.do }}</p>
+            <h3 :style="{ 
+              color: step.title?.color, 
+              fontSize: (step.title?.size || 32) + 'px',
+              fontWeight: step.title?.bold ? '900' : '400',
+              fontStyle: step.title?.italic ? 'italic' : 'normal'
+            }">
+              {{ step.title?.text || step.title }}
+            </h3>
+            <p :style="{ color: step.have?.color, fontSize: (step.have?.size || 14) + 'px' }">
+              <strong>What we have:</strong> {{ step.have?.text || step.have }}
+            </p>
+            <p :style="{ color: step.do?.color, fontSize: (step.do?.size || 14) + 'px' }">
+              <strong>What we do:</strong> {{ step.do?.text || step.do }}
+            </p>
           </div>
           <div class="step-icon">
-            <div class="icon-circle">
+            <div class="icon-circle shadow-xl">
               <component :is="stepIcons[idx % stepIcons.length]" :size="40" />
             </div>
           </div>
@@ -60,10 +102,21 @@ const stepIcons = [ShieldCheck, Printer, Package, Truck]
     <!-- Conclusion CTA -->
     <section class="process-cta container">
       <div class="cta-box">
-        <Info :size="48" color="#000" />
-        <h2>Experience The Difference</h2>
-        <p>Now that you know how it's made, feel it for yourself.</p>
-        <router-link to="/shop" class="btn primary-btn btn-large">Shop The Collection</router-link>
+        <Info :size="48" :color="productStore.siteContent.process?.cta?.title?.color || '#d97706'" />
+        <h2 :style="{ 
+          color: productStore.siteContent.process?.cta?.title?.color,
+          fontSize: (productStore.siteContent.process?.cta?.title?.size || 42) + 'px',
+          fontWeight: productStore.siteContent.process?.cta?.title?.bold ? '900' : '400'
+        }">
+          {{ productStore.siteContent.process?.cta?.title?.text || 'Experience The Difference' }}
+        </h2>
+        <p :style="{ 
+          color: productStore.siteContent.process?.cta?.subtitle?.color,
+          fontSize: (productStore.siteContent.process?.cta?.subtitle?.size || 18) + 'px'
+        }">
+          {{ productStore.siteContent.process?.cta?.subtitle?.text || "Now that you know how it's made, feel it for yourself." }}
+        </p>
+        <router-link to="/shop" class="btn primary-btn btn-large shadow-2xl">Shop The Collection</router-link>
       </div>
     </section>
 
