@@ -1,24 +1,74 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useProductStore } from '../stores/productStore'
+import { 
+  Package, 
+  MessageSquare, 
+  Clock, 
+  CheckCircle2, 
+  ArrowUpRight,
+  TrendingUp,
+  Building2,
+  Mail,
+  Phone
+} from 'lucide-vue-next'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const productStore = useProductStore()
 
-onMounted(() => {
-  if (authStore.isLoggedIn) {
-     authStore.fetchOrders();
+// Sync activeTab with route query
+const activeTab = ref('profile') // profile, addresses, orders, settings
+
+const syncActiveTab = () => {
+  if (route.query.tab) {
+    activeTab.value = route.query.tab
+  } else if (route.path.includes('/orders')) {
+    activeTab.value = 'orders'
   }
+}
+
+onMounted(async () => {
+  syncActiveTab()
+  if (authStore.isLoggedIn) {
+     await Promise.all([
+       authStore.fetchOrders(),
+       authStore.fetchInquiries()
+     ]);
+  }
+})
+
+// Watch for route changes to switch tabs without refresh
+import { watch } from 'vue'
+watch(() => route.query.tab, (newTab) => {
+  if (newTab) activeTab.value = newTab
+})
+watch(() => route.path, (newPath) => {
+  if (newPath.includes('/orders')) activeTab.value = 'orders'
+})
+
+const combinedHistory = computed(() => {
+  const orders = (authStore.orders || []).map(o => ({ 
+    ...o, 
+    type: 'ORDER', 
+    timestamp: o.date ? new Date(o.date).getTime() : 0 
+  }))
+  
+  const inquiries = (authStore.inquiries || []).map(i => ({ 
+    ...i, 
+    type: 'INQUIRY', 
+    timestamp: i.createdAt || (i.date ? new Date(i.date).getTime() : 0)
+  }))
+
+  return [...orders, ...inquiries].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
 })
 
 if (!authStore.isLoggedIn) {
   router.push('/login')
 }
-
-const activeTab = ref('profile') // profile, addresses, orders, settings
 
 // Address Form State
 const showAddressForm = ref(false)
@@ -251,46 +301,87 @@ const savePersonal = async () => {
         </div>
       </div>
 
-      <!-- Order History -->
+      <!-- History (Orders & Inquiries) -->
       <div v-if="activeTab === 'orders'" class="tab-pane">
-        <h2>Order History</h2>
+        <div class="pane-header">
+           <h2>Your History</h2>
+           <p class="history-subtitle">Track your orders and bulk inquiries in one place.</p>
+        </div>
         
-        <div v-if="authStore.orders.length === 0" class="empty-state">
-          <p>You haven't placed any orders yet.</p>
+        <div v-if="combinedHistory.length === 0" class="empty-state">
+          <p>You haven't placed any orders or inquiries yet.</p>
           <RouterLink to="/shop" class="btn primary-btn">Start Shopping</RouterLink>
         </div>
 
-        <div class="orders-list" v-else>
-          <div v-for="order in authStore.orders" :key="order.id" class="order-card">
-            <div class="order-header">
-              <div class="order-meta">
-                <span class="order-id">Order #{{ order.id }}</span>
-                <span class="order-date">{{ new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) }}</span>
+        <div class="history-list" v-else>
+          <div v-for="item in combinedHistory" :key="item.id || item.inquiryId" class="record-card" :class="item.type.toLowerCase()">
+            <!-- Common Header -->
+            <div class="record-header">
+              <div class="record-badge" :class="item.type.toLowerCase()">
+                 <Package v-if="item.type === 'ORDER'" size="14" />
+                 <MessageSquare v-else size="14" />
+                 <span>{{ item.type }}</span>
               </div>
-              <div class="order-status" :class="order.status.toLowerCase()">{{ order.status }}</div>
+              <span class="record-date">{{ new Date(item.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) }}</span>
+              <div class="record-status" :class="(item.status || 'pending').toLowerCase()">{{ item.status || 'Pending' }}</div>
             </div>
-            <div class="order-body">
-              <div class="order-item-img">
-                <img v-if="order.thumbnail" :src="productStore.resolveImageUrl(order.thumbnail)" alt="Product Thumbnail" />
-              </div>
-              <div class="order-item-details">
-                 <p class="item-names">{{ order.item_names || 'Processing items...' }}</p>
-                 <p class="items-count">{{ order.item_count || 1 }} ITEMS INDEXED</p>
-              </div>
-              
-              <!-- Address in Order History -->
-              <div v-if="order.address" class="order-shipped-to">
-                 <p class="shipped-label">Shipped To</p>
-                 <p class="shipped-name">{{ order.address.fullName }}</p>
-                 <p class="shipped-address">{{ order.address.street }}, {{ order.address.city }}, {{ order.address.state }} {{ order.address.zip }}</p>
-              </div>
+
+            <!-- Order Content -->
+            <div v-if="item.type === 'ORDER'" class="record-body order-flavor">
+               <div class="record-main">
+                  <div class="record-img">
+                     <img v-if="item.thumbnail" :src="productStore.resolveImageUrl(item.thumbnail)" alt="Thumbnail" />
+                  </div>
+                  <div class="record-details">
+                     <h4 class="record-id">Order #{{ item.id }}</h4>
+                     <p class="record-subtext">{{ item.item_names || 'Processing items...' }}</p>
+                  </div>
+               </div>
+               <div class="record-meta-box">
+                  <div class="meta-item">
+                     <span class="meta-label">Total</span>
+                     <span class="meta-value">{{ productStore.formatPrice(item.totalUSD || item.total) }}</span>
+                  </div>
+                  <RouterLink :to="'/order-success?id=' + item.id" class="record-action-btn">
+                     Manage <ArrowUpRight size="14" />
+                  </RouterLink>
+               </div>
             </div>
-            <div class="order-footer">
-              <span class="order-total">Total: {{ productStore.formatPrice(order.totalUSD || order.total) }}</span>
-              <div class="footer-actions">
-                <RouterLink :to="'/order-success?id=' + order.id" class="text-link">Track / Manage Order</RouterLink>
-                <RouterLink v-if="order.status === 'Delivered'" :to="'/add-review?orderId=' + order.id" class="btn-review-indicator">Rate & Review</RouterLink>
-              </div>
+
+            <!-- Inquiry Content -->
+            <div v-else class="record-body inquiry-flavor">
+               <div class="record-main">
+                  <div class="record-icon-box">
+                     <TrendingUp v-if="item.orderType === 'team'" size="20" />
+                     <Building2 v-else size="20" />
+                  </div>
+                  <div class="record-details">
+                     <h4 class="record-id">{{ item.orgName }}</h4>
+                     <p class="record-subtext line-clamp-1">{{ item.orderType }} Inquiry &bull; {{ item.estimatedQty }} Units</p>
+                     
+                     <!-- Detailed Lead Info (Admin Style) -->
+                     <div class="inquiry-details-grid mt-4">
+                        <div class="detail-item">
+                           <Building2 size="12" />
+                           <span>{{ item.fullName }}</span>
+                        </div>
+                        <div class="detail-item">
+                           <Phone size="12" />
+                           <span>{{ item.phone }}</span>
+                        </div>
+                     </div>
+                     <p class="record-message mt-3">"{{ item.message }}"</p>
+                  </div>
+               </div>
+               <div class="record-meta-box">
+                  <div class="meta-item">
+                     <span class="meta-label">Inquiry ID</span>
+                     <span class="meta-value">#{{ (item.inquiryId || '').slice(0, 8) }}</span>
+                  </div>
+                  <div class="record-action-btn disabled">
+                     Lead Analysis <Clock size="14" />
+                  </div>
+               </div>
             </div>
           </div>
         </div>
@@ -573,211 +664,237 @@ const savePersonal = async () => {
   color: #e74c3c;
 }
 
-/* Orders */
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-}
-
-.empty-state p {
-  margin-bottom: 20px;
+/* History & Records */
+.history-subtitle {
+  font-size: 0.9rem;
   color: #666;
+  margin-top: -20px;
+  margin-bottom: 20px;
 }
 
-.orders-list {
+.history-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  margin-bottom: 40px;
+  gap: 25px;
+  margin-bottom: 60px;
 }
 
-.order-card {
-  border: 1px solid #eee;
-  border-radius: 8px;
+.record-card {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 20px;
   overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
-.order-header {
-  background: #f9f9f9;
-  padding: 15px 20px;
+.record-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  border-color: #e5e7eb;
+}
+
+.record-header {
+  padding: 15px 25px;
+  background: #fafafb;
+  border-bottom: 1px solid #f1f5f9;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #eee;
+  justify-content: space-between;
 }
 
-.order-meta {
+.record-badge {
   display: flex;
-  gap: 20px;
-}
-
-.order-id {
-  font-weight: 700;
-}
-
-.order-date {
-  color: #666;
-}
-
-.order-status {
-  font-weight: 600;
-  font-size: 0.9rem;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.order-status.delivered { color: #2ecc71; }
-.order-status.processing { color: #f39c12; }
-.order-status.shipped { color: #3498db; }
-
-.order-body {
-  display: flex;
-  align-items: flex-start;
-  gap: 24px;
-  padding: 20px;
+.record-badge.order {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
 }
 
-.order-item-img {
-  width: 80px;
-  height: 80px;
+.record-badge.inquiry {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #ffedd5;
+}
+
+.record-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.record-status {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.record-status.new, .record-status.processing { color: #3b82f6; }
+.record-status.shipped, .record-status.in\ progress { color: #f59e0b; }
+.record-status.delivered, .record-status.completed { color: #10b981; }
+
+.record-body {
+  padding: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.record-main {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+}
+
+.record-img {
+  width: 60px;
+  height: 60px;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid #eee;
-  flex-shrink: 0;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
 }
 
-.order-item-img img {
+.record-img img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.order-item-details {
-  flex: 1;
+.record-icon-box {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: #000;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.item-names {
+.record-details .record-id {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0 0 4px 0;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+.record-subtext {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  margin: 0;
+}
+
+.record-meta-box {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.meta-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+
+.meta-value {
   font-size: 14px;
-  font-weight: 700;
-  color: #333;
-  text-transform: uppercase;
-  font-style: italic;
-  letter-spacing: -0.5px;
-  margin-bottom: 8px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  font-weight: 800;
+  color: #1e293b;
 }
 
-.items-count {
-  font-size: 10px;
-  font-weight: 900;
-  color: #999;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
-
-.order-shipped-to {
-  flex: 1;
-  border-left: 1px solid #eee;
-  padding-left: 24px;
-  max-width: 300px;
-}
-
-.shipped-label {
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #999;
-  margin-bottom: 8px;
-}
-
-.shipped-name {
-  font-size: 12px;
-  font-weight: 700;
-  color: #333;
-}
-
-.shipped-address {
-  font-size: 12px;
-  color: #666;
-  margin-top: 4px;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-@media (max-width: 768px) {
-  .order-body {
-    flex-direction: column;
-    gap: 16px;
-  }
-  .order-shipped-to {
-    border-left: none;
-    padding-left: 0;
-    border-top: 1px solid #eee;
-    padding-top: 16px;
-    max-width: 100%;
-  }
-}
-
-.order-footer {
-  padding: 15px 20px;
-  background: #fafafa;
-  border-top: 1px solid #eee;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.order-total {
-  font-weight: 700;
-  font-size: 1.1rem;
-}
-
-@media (max-width: 768px) {
-  .order-footer {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-}
-
-.footer-actions {
+.record-action-btn {
   display: flex;
   align-items: center;
-  gap: 15px;
-}
-
-.text-link {
-  background: #fff;
-  border: 1px solid #ccc;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-weight: 600;
-  text-decoration: none !important;
-  color: #333;
-}
-.text-link:hover {
-  background: #f4f4f4;
-}
-
-.btn-review-indicator {
-  background: #ebf5ff;
-  color: #2563eb;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #000;
+  color: #fff;
+  border-radius: 12px;
+  font-size: 12px;
   font-weight: 700;
   text-decoration: none;
-  border: 1px solid #bfdbfe;
   transition: all 0.2s;
 }
 
-.btn-review-indicator:hover {
-  background: #dbeafe;
-  transform: translateY(-1px);
+.record-message {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #475569;
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  font-style: italic;
+}
+
+.inquiry-details-grid {
+  display: flex;
+  gap: 20px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.record-action-btn:hover {
+  background: #334155;
+  transform: translateX(4px);
+}
+
+.record-action-btn.disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+  pointer-events: none;
+  border: 1px solid #e2e8f0;
+}
+
+@media (max-width: 768px) {
+  .record-body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .record-meta-box {
+    width: 100%;
+    justify-content: space-between;
+    padding-top: 20px;
+    border-top: 1px solid #f1f5f9;
+  }
+  .meta-item {
+    align-items: flex-start;
+  }
 }
 </style>

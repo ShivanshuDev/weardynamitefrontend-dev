@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', {
     token: localStorage.getItem('token') || null,
     addresses: [],
     orders: [],
+    inquiries: [],
     notifications: [],
     unreadCount: 0,
     notifPollingId: null
@@ -37,6 +38,7 @@ export const useAuthStore = defineStore('auth', {
         
         await Promise.all([
           this.fetchOrders(),
+          this.fetchInquiries(),
           this.fetchAddresses(),
           this.registerFcmToken()
         ]);
@@ -62,6 +64,7 @@ export const useAuthStore = defineStore('auth', {
         
         await Promise.all([
           this.fetchOrders(),
+          this.fetchInquiries(),
           this.fetchAddresses(),
           this.registerFcmToken()
         ]);
@@ -90,6 +93,7 @@ export const useAuthStore = defineStore('auth', {
         
         await Promise.all([
           this.fetchOrders(),
+          this.fetchInquiries(),
           this.fetchAddresses(),
           this.registerFcmToken()
         ]);
@@ -104,6 +108,7 @@ export const useAuthStore = defineStore('auth', {
       this.user = null;
       this.token = null;
       this.orders = [];
+      this.inquiries = [];
       this.addresses = [];
       localStorage.removeItem('token');
       localStorage.removeItem('user');
@@ -187,6 +192,14 @@ export const useAuthStore = defineStore('auth', {
         }));
       } catch (error) {
         console.error('Failed to fetch orders:', error);
+      }
+    },
+    async fetchInquiries() {
+      try {
+        const response = await api.get('/my-inquiries');
+        this.inquiries = response.data;
+      } catch (error) {
+        console.error('Failed to fetch inquiries:', error);
       }
     },
     async fetchAddresses() {

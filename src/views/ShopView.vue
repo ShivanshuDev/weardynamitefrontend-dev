@@ -3,11 +3,18 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProductStore } from '../stores/productStore'
 import ProductCard from '../components/ProductCard.vue'
-import { Filter, X, ChevronDown, ChevronRight } from 'lucide-vue-next'
+import BulkOrderForm from '../components/BulkOrderForm.vue'
+import { Filter, X, ChevronDown, ChevronRight, PackageCheck } from 'lucide-vue-next'
 import { PRODUCT_TAXONOMY, GENDERS } from '../data/categories'
 
 const route = useRoute()
 const productStore = useProductStore()
+
+// Bulk Order Toggle
+const showBulkOrder = ref(route.query.view === 'bulk')
+const toggleBulkOrder = () => {
+  showBulkOrder.value = !showBulkOrder.value
+}
 
 onMounted(() => {
   productStore.fetchProducts()
@@ -17,9 +24,10 @@ onMounted(() => {
   }
 })
 
-// Watch for route changes (from Mega Menu)
+// Watch for route changes (from Mega Menu or Bulk link)
 watch(() => route.query, (newQuery) => {
   productStore.syncFiltersFromURL(newQuery)
+  showBulkOrder.value = newQuery.view === 'bulk'
 }, { deep: true })
 
 const isSidebarOpen = ref(false)
@@ -80,8 +88,18 @@ const clearAll = () => {
 <template>
   <div class="shop-view container">
     <div class="shop-header">
-      <h1 class="page-title">Shop</h1>
-      <div class="shop-controls">
+      <div class="title-with-badge">
+        <h1 class="page-title">{{ showBulkOrder ? 'Bulk Order' : 'Shop' }}</h1>
+        <button 
+          class="bulk-badge-btn" 
+          :class="{ active: showBulkOrder }"
+          @click="toggleBulkOrder"
+        >
+          <PackageCheck :size="14" /> {{ showBulkOrder ? 'Back to Shop' : 'Bulk Order' }}
+        </button>
+      </div>
+      
+      <div v-if="!showBulkOrder" class="shop-controls">
         <button class="mobile-filter-btn btn" @click="toggleSidebar">
           <Filter :size="16" style="margin-right: 8px;" /> Filters
         </button>
@@ -97,7 +115,11 @@ const clearAll = () => {
       </div>
     </div>
 
-    <div class="shop-layout">
+    <!-- Bulk Order View -->
+    <BulkOrderForm v-if="showBulkOrder" @close="showBulkOrder = false" />
+
+    <!-- Standard Shop Layout -->
+    <div v-else class="shop-layout">
       <!-- Fast Filter Sidebar -->
       <aside class="sidebar" :class="{ 'sidebar-open': isSidebarOpen }">
         <div class="sidebar-header mobile-only">
@@ -244,6 +266,41 @@ const clearAll = () => {
 .page-title {
   margin: 0;
   font-size: 2.5rem;
+}
+
+.title-with-badge {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.bulk-badge-btn {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bulk-badge-btn:hover {
+  background: #e2e8f0;
+  color: #000;
+  transform: translateY(-1px);
+}
+
+.bulk-badge-btn.active {
+  background: #000;
+  color: #fff;
+  border-color: #000;
 }
 
 .shop-controls {

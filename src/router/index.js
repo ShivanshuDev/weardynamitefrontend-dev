@@ -51,7 +51,8 @@ const routes = [
   {
     path: '/profile',
     name: 'profile',
-    component: () => import('../views/ProfileView.vue')
+    component: () => import('../views/ProfileView.vue'),
+    alias: ['/profile/orders']
   },
   {
     path: '/checkout',
