@@ -28,6 +28,11 @@ onMounted(async () => {
   if (orderId) {
     try {
       order.value = await authStore.fetchOrderById(orderId)
+      // On successful order landing, ensure cart and checkout are cleared
+      if (order.value && !productStore.isDirectCheckout) {
+        productStore.clearCart()
+      }
+      productStore.clearCheckout()
     } catch (err) {
       console.error('Error fetching order:', err)
     } finally {

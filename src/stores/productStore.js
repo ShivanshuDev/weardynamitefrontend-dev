@@ -579,6 +579,16 @@ export const useProductStore = defineStore('products', {
       } finally {
         this.blogLoading = false
       }
+    },
+    clearCart() {
+      this.cart = []
+      localStorage.setItem('cart', JSON.stringify([]))
+    },
+    clearCheckout() {
+      this.checkoutItems = []
+      this.isDirectCheckout = false
+      localStorage.removeItem('checkoutItems')
+      localStorage.removeItem('isDirectCheckout')
     }
   }
 })

@@ -69,6 +69,11 @@ const routes = [
     component: () => import('../views/OrderStatusView.vue')
   },
   {
+    path: '/profile/orders/:id',
+    name: 'profile-order-detail',
+    component: () => import('../views/OrderStatusView.vue')
+  },
+  {
     path: '/process',
     name: 'process',
     component: ProcessView

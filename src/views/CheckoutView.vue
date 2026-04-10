@@ -123,10 +123,11 @@ const placeOrder = async () => {
       const result = await authStore.addOrder(order)
       
       if (!productStore.isDirectCheckout) {
-        productStore.cart = []
+        productStore.clearCart()
       }
-      productStore.checkoutItems = []
+      productStore.clearCheckout()
       productStore.appliedCoupon = null
+      
       router.push(`/order-success?id=${result.order_id || result.id}`)
     } else {
       // PayU / Online Payment

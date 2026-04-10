@@ -9,7 +9,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 const productStore = useProductStore()
 
-const orderId = route.query.id
+const orderId = route.query.id || route.params.id
 const order = computed(() => authStore.orders.find(o => o.orderId === orderId || o.id === orderId))
 
 onMounted(async () => {
