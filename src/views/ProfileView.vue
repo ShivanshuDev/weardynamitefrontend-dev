@@ -162,26 +162,35 @@ const logout = () => {
         </div>
 
         <div class="orders-list" v-else>
-          <div v-for="order in authStore.orders" :key="order.id" class="order-card hover:shadow-md transition-shadow">
+          <div v-for="order in authStore.orders" :key="order.id" class="order-card">
             <div class="order-header">
               <div class="order-meta">
                 <span class="order-id">Order #{{ order.id }}</span>
-                <span class="order-date">{{ order.date }}</span>
+                <span class="order-date">{{ new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) }}</span>
               </div>
               <div class="order-status" :class="order.status.toLowerCase()">{{ order.status }}</div>
             </div>
-            <div class="order-body flex items-center gap-6 p-5">
-              <img v-if="order.thumbnail" :src="productStore.resolveImageUrl(order.thumbnail)" class="w-20 h-20 rounded-xl object-cover border border-slate-100 shadow-sm" />
-              <div class="flex-1">
-                 <p class="text-sm font-bold text-slate-800 line-clamp-2 uppercase italic tracking-tighter">{{ order.item_names || 'Processing items...' }}</p>
-                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">{{ order.item_count || 1 }} ITEMS INDEXED</p>
+            <div class="order-body">
+              <div class="order-item-img">
+                <img v-if="order.thumbnail" :src="productStore.resolveImageUrl(order.thumbnail)" alt="Product Thumbnail" />
+              </div>
+              <div class="order-item-details">
+                 <p class="item-names">{{ order.item_names || 'Processing items...' }}</p>
+                 <p class="items-count">{{ order.item_count || 1 }} ITEMS INDEXED</p>
+              </div>
+              
+              <!-- Address in Order History -->
+              <div v-if="order.address" class="order-shipped-to">
+                 <p class="shipped-label">Shipped To</p>
+                 <p class="shipped-name">{{ order.address.fullName }}</p>
+                 <p class="shipped-address">{{ order.address.street }}, {{ order.address.city }}, {{ order.address.state }} {{ order.address.zip }}</p>
               </div>
             </div>
             <div class="order-footer">
               <span class="order-total">Total: {{ productStore.formatPrice(order.totalUSD || order.total) }}</span>
               <div class="footer-actions">
-                <RouterLink :to="'/order-status?id=' + order.id" class="text-link">Manage Order</RouterLink>
-                <RouterLink v-if="order.status === 'Delivered'" :to="'/order-status?id=' + order.id" class="btn-review-indicator">Rate & Review Items</RouterLink>
+                <RouterLink :to="'/order-success?id=' + order.id" class="text-link">Track / Manage Order</RouterLink>
+                <RouterLink v-if="order.status === 'Delivered'" :to="'/add-review?orderId=' + order.id" class="btn-review-indicator">Rate & Review</RouterLink>
               </div>
             </div>
           </div>
@@ -521,43 +530,145 @@ const logout = () => {
 .order-status.processing { color: #f39c12; }
 .order-status.shipped { color: #3498db; }
 
-.order-items {
+.order-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
   padding: 20px;
-  color: #555;
-  line-height: 1.6;
+}
+
+.order-item-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #eee;
+  flex-shrink: 0;
+}
+
+.order-item-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.order-item-details {
+  flex: 1;
+}
+
+.item-names {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  text-transform: uppercase;
+  font-style: italic;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.items-count {
+  font-size: 10px;
+  font-weight: 900;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.order-shipped-to {
+  flex: 1;
+  border-left: 1px solid #eee;
+  padding-left: 24px;
+  max-width: 300px;
+}
+
+.shipped-label {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+.shipped-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #333;
+}
+
+.shipped-address {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .order-body {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .order-shipped-to {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid #eee;
+    padding-top: 16px;
+    max-width: 100%;
+  }
 }
 
 .order-footer {
   padding: 15px 20px;
   background: #fafafa;
   border-top: 1px solid #eee;
-  text-align: right;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.order-total {
   font-weight: 700;
   font-size: 1.1rem;
 }
 
 @media (max-width: 768px) {
-  .profile-view {
-    grid-template-columns: 1fr;
-    gap: 30px;
-  }
-  .profile-sidebar {
-    border-right: none;
-    border-bottom: 1px solid #eee;
-    padding-right: 0;
-    padding-bottom: 30px;
+  .order-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
   }
 }
+
 .footer-actions {
   display: flex;
   align-items: center;
   gap: 15px;
 }
 
+.text-link {
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-decoration: none !important;
+  color: #333;
+}
+.text-link:hover {
+  background: #f4f4f4;
+}
+
 .btn-review-indicator {
   background: #ebf5ff;
   color: #2563eb;
-  padding: 6px 14px;
+  padding: 8px 16px;
   border-radius: 4px;
   font-size: 0.8rem;
   font-weight: 700;
