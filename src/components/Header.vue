@@ -7,6 +7,8 @@ import { useAuthStore } from '../stores/authStore'
 
 import { PRODUCT_TAXONOMY, GENDERS } from '../data/categories'
 
+import NotificationCenter from './NotificationCenter.vue'
+
 const productStore = useProductStore()
 const authStore = useAuthStore()
 const isMenuOpen = ref(false)
@@ -76,6 +78,7 @@ const navLinks = [
           </div>
           <User v-else :size="20" />
         </RouterLink>
+        <NotificationCenter v-if="authStore.isLoggedIn" />
         <RouterLink to="/favorites" class="action-btn cart-btn" title="Favorites">
           <Heart :size="20" />
           <span class="cart-count" v-if="productStore.favorites.length > 0">{{ productStore.favorites.length }}</span>

@@ -11,7 +11,9 @@ onMounted(async () => {
   if (authStore.isLoggedIn) {
     await Promise.all([
       authStore.fetchOrders(),
-      authStore.fetchAddresses()
+      authStore.fetchAddresses(),
+      authStore.fetchNotifications(),
+      authStore.registerFcmToken()
     ]);
   }
 })

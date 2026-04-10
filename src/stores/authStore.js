@@ -9,7 +9,10 @@ export const useAuthStore = defineStore('auth', {
     user: JSON.parse(localStorage.getItem('user')) || null,
     token: localStorage.getItem('token') || null,
     addresses: [],
-    orders: []
+    orders: [],
+    notifications: [],
+    unreadCount: 0,
+    notifPollingId: null
   }),
   getters: {
     isLoggedIn: (state) => !!state.token,
@@ -104,6 +107,20 @@ export const useAuthStore = defineStore('auth', {
       this.addresses = [];
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      this.stopNotifPolling();
+    },
+    startNotifPolling() {
+      if (this.notifPollingId) return;
+      this.fetchNotifications();
+      this.notifPollingId = setInterval(() => {
+        this.fetchNotifications();
+      }, 30000); // 30s
+    },
+    stopNotifPolling() {
+      if (this.notifPollingId) {
+        clearInterval(this.notifPollingId);
+        this.notifPollingId = null;
+      }
     },
     async registerFcmToken() {
       try {
@@ -125,6 +142,38 @@ export const useAuthStore = defineStore('auth', {
         }
       } catch (error) {
         console.error('[FCM] Error registering token:', error);
+      }
+    },
+    async fetchNotifications() {
+      if (!this.isLoggedIn) return;
+      try {
+        const response = await api.get('/user/notifications');
+        this.notifications = response.data;
+        this.unreadCount = this.notifications.filter(n => !n.isRead).length;
+        this.startNotifPolling();
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      }
+    },
+    async markNotificationRead(id) {
+      try {
+        await api.patch(`/user/notifications/${id}/read`);
+        const notif = this.notifications.find(n => n.id === id);
+        if (notif) {
+          notif.isRead = true;
+          this.unreadCount = Math.max(0, this.unreadCount - 1);
+        }
+      } catch (error) {
+        console.error('Failed to mark notification as read:', error);
+      }
+    },
+    async markAllRead() {
+      try {
+        await api.post('/user/notifications/read-all');
+        this.notifications.forEach(n => n.isRead = true);
+        this.unreadCount = 0;
+      } catch (error) {
+        console.error('Failed to mark all as read:', error);
       }
     },
     async fetchOrders() {

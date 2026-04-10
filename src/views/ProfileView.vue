@@ -42,7 +42,8 @@ const personalForm = ref({
   phone: authStore.user?.phone || '',
   phoneSecondary: authStore.user?.phoneSecondary || '',
   dob: authStore.user?.dob || '',
-  interests: authStore.user?.interests || ''
+  interests: authStore.user?.interests || '',
+  gender: authStore.user?.gender || ''
 })
 
 const startEditingPersonal = () => {
@@ -51,7 +52,8 @@ const startEditingPersonal = () => {
     phone: authStore.user?.phone || '',
     phoneSecondary: authStore.user?.phoneSecondary || '',
     dob: authStore.user?.dob || '',
-    interests: authStore.user?.interests || ''
+    interests: authStore.user?.interests || '',
+    gender: authStore.user?.gender || ''
   }
   isEditingPersonal.value = true
 }
@@ -121,6 +123,10 @@ const savePersonal = async () => {
             <span class="value">{{ authStore.user.interests || 'Not provided' }}</span>
           </div>
           <div class="info-row">
+            <span class="label">Gender:</span>
+            <span class="value">{{ authStore.user.gender || 'Not provided' }}</span>
+          </div>
+          <div class="info-row">
             <span class="label">Member Since:</span>
             <span class="value">{{ new Date(authStore.user.joinedDate).toLocaleDateString() }}</span>
           </div>
@@ -148,9 +154,19 @@ const savePersonal = async () => {
                 <input v-model="personalForm.dob" type="date" />
               </div>
               <div class="form-group">
-                <label>Interests / Preferences</label>
-                <input v-model="personalForm.interests" placeholder="e.g. Streetwear, Oversized, Cotton" />
+                <label>Gender</label>
+                <select v-model="personalForm.gender" class="form-select">
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
               </div>
+            </div>
+            <div class="form-group">
+              <label>Interests / Preferences</label>
+              <input v-model="personalForm.interests" placeholder="e.g. Streetwear, Oversized, Cotton" />
             </div>
             <div class="form-actions mt-4">
               <button type="submit" class="btn primary-btn">Update Profile Details</button>
