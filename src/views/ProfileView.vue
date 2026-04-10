@@ -34,6 +34,36 @@ const logout = () => {
   authStore.logout()
   router.push('/')
 }
+
+// Personal Info Edit State
+const isEditingPersonal = ref(false)
+const personalForm = ref({
+  name: authStore.user?.name || '',
+  phone: authStore.user?.phone || '',
+  phoneSecondary: authStore.user?.phoneSecondary || '',
+  dob: authStore.user?.dob || '',
+  interests: authStore.user?.interests || ''
+})
+
+const startEditingPersonal = () => {
+  personalForm.value = {
+    name: authStore.user?.name || '',
+    phone: authStore.user?.phone || '',
+    phoneSecondary: authStore.user?.phoneSecondary || '',
+    dob: authStore.user?.dob || '',
+    interests: authStore.user?.interests || ''
+  }
+  isEditingPersonal.value = true
+}
+
+const savePersonal = async () => {
+  try {
+    await authStore.updateProfile(personalForm.value)
+    isEditingPersonal.value = false
+  } catch (error) {
+    alert('Failed to update profile. Please try again.')
+  }
+}
 </script>
 
 <template>
@@ -59,8 +89,13 @@ const logout = () => {
     <div class="profile-content">
       <!-- Profile Details -->
       <div v-if="activeTab === 'profile'" class="tab-pane">
-        <h2>Profile Information</h2>
-        <div class="info-card">
+        <div class="pane-header">
+          <h2>Profile Information</h2>
+          <button v-if="!isEditingPersonal" class="btn secondary" @click="startEditingPersonal">Edit Profile</button>
+          <button v-else class="btn secondary" @click="isEditingPersonal = false">Cancel</button>
+        </div>
+
+        <div v-if="!isEditingPersonal" class="info-card">
           <div class="info-row">
             <span class="label">Full Name:</span>
             <span class="value">{{ authStore.user.name }}</span>
@@ -70,9 +105,57 @@ const logout = () => {
             <span class="value">{{ authStore.user.email }}</span>
           </div>
           <div class="info-row">
+            <span class="label">Primary Phone:</span>
+            <span class="value">{{ authStore.user.phone || 'Not provided' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Secondary Phone:</span>
+            <span class="value">{{ authStore.user.phoneSecondary || 'Not provided' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Date of Birth:</span>
+            <span class="value">{{ authStore.user.dob ? new Date(authStore.user.dob).toLocaleDateString() : 'Not provided' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Interests:</span>
+            <span class="value">{{ authStore.user.interests || 'Not provided' }}</span>
+          </div>
+          <div class="info-row">
             <span class="label">Member Since:</span>
             <span class="value">{{ new Date(authStore.user.joinedDate).toLocaleDateString() }}</span>
           </div>
+        </div>
+
+        <div v-else class="info-card">
+          <form @submit.prevent="savePersonal">
+            <div class="form-group">
+              <label>Full Name</label>
+              <input v-model="personalForm.name" required />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Primary Phone</label>
+                <input v-model="personalForm.phone" placeholder="+91 XXXXX XXXXX" />
+              </div>
+              <div class="form-group">
+                <label>Secondary Phone (Optional)</label>
+                <input v-model="personalForm.phoneSecondary" placeholder="Alternate contact" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Date of Birth</label>
+                <input v-model="personalForm.dob" type="date" />
+              </div>
+              <div class="form-group">
+                <label>Interests / Preferences</label>
+                <input v-model="personalForm.interests" placeholder="e.g. Streetwear, Oversized, Cotton" />
+              </div>
+            </div>
+            <div class="form-actions mt-4">
+              <button type="submit" class="btn primary-btn">Update Profile Details</button>
+            </div>
+          </form>
         </div>
       </div>
 

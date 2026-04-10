@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import api from '../utils/api'
-import { auth } from '../utils/firebase'
+import { auth, messaging } from '../utils/firebase'
+import { getToken } from 'firebase/messaging'
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 
 export const useAuthStore = defineStore('auth', {
@@ -33,7 +34,8 @@ export const useAuthStore = defineStore('auth', {
         
         await Promise.all([
           this.fetchOrders(),
-          this.fetchAddresses()
+          this.fetchAddresses(),
+          this.registerFcmToken()
         ]);
         return true;
       } catch (error) {
@@ -57,7 +59,8 @@ export const useAuthStore = defineStore('auth', {
         
         await Promise.all([
           this.fetchOrders(),
-          this.fetchAddresses()
+          this.fetchAddresses(),
+          this.registerFcmToken()
         ]);
         return true;
       } catch (error) {
@@ -84,7 +87,8 @@ export const useAuthStore = defineStore('auth', {
         
         await Promise.all([
           this.fetchOrders(),
-          this.fetchAddresses()
+          this.fetchAddresses(),
+          this.registerFcmToken()
         ]);
         return true;
       } catch (error) {
@@ -100,6 +104,28 @@ export const useAuthStore = defineStore('auth', {
       this.addresses = [];
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+    },
+    async registerFcmToken() {
+      try {
+        // Check if supported and token exists
+        if (!messaging) return;
+
+        // Request permission
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+
+        // Get token from Firebase
+        const token = await getToken(messaging, { 
+          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY 
+        });
+
+        if (token) {
+          await api.post('/user/fcm-token', { token });
+          console.log('[FCM] Device token registered successfully.');
+        }
+      } catch (error) {
+        console.error('[FCM] Error registering token:', error);
+      }
     },
     async fetchOrders() {
       try {
@@ -173,6 +199,21 @@ export const useAuthStore = defineStore('auth', {
         await this.fetchAddresses();
       } catch (error) {
         console.error('Failed to set default address:', error);
+        throw error;
+      }
+    },
+    async updateProfile(profileData) {
+      try {
+        const response = await api.put('/user/profile', profileData);
+        // The backend might return the updated profile directly
+        this.user = { 
+          ...this.user, 
+          ...(response.data.profile || response.data)
+        };
+        localStorage.setItem('user', JSON.stringify(this.user));
+        return this.user;
+      } catch (error) {
+        console.error('Failed to update profile:', error);
         throw error;
       }
     },
