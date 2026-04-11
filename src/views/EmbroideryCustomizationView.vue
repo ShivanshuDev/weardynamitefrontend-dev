@@ -1,5 +1,7 @@
-<script setup>
 import { ref } from 'vue'
+import { useUiStore } from '../stores/uiStore'
+
+const uiStore = useUiStore()
 
 const form = ref({
   apparelType: 'Lehenga',
@@ -14,7 +16,7 @@ const form = ref({
 const colors = ['#8e44ad', '#c0392b', '#27ae60', '#f39c12', '#2c3e50', '#ffffff', '#e67e22', '#ff9ff3']
 
 const submitEmbroidery = () => {
-  alert('Your bespoke embroidery request has been filed for review by our master artisans!')
+  uiStore.showNotification('Request Filed', 'Your bespoke embroidery request has been filed for review by our master artisans!', 'success')
 }
 </script>
 

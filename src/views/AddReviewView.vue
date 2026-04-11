@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useProductStore } from '../stores/productStore'
+import { useUiStore } from '../stores/uiStore'
 import { Star, Upload, X, CheckCircle, AlertCircle, Loader2, ArrowLeft } from 'lucide-vue-next'
 import axios from 'axios'
 
@@ -10,6 +11,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const productStore = useProductStore()
+const uiStore = useUiStore()
 
 const orderId = route.query.orderId
 const productId = route.query.productId
@@ -31,7 +33,7 @@ onMounted(async () => {
   }
 
   if (!orderId || !productId) {
-    alert('Invalid review request')
+    uiStore.showNotification('Error', 'Invalid review request', 'error')
     router.push('/profile')
     return
   }
@@ -42,7 +44,7 @@ onMounted(async () => {
     order.value = authStore.orders.find(o => o.orderId === orderId || o.id === orderId)
     
     if (!order.value || order.value.status !== 'Delivered') {
-       alert('You can only review items after they have been Delivered.')
+       uiStore.showNotification('Info', 'You can only review items after they have been Delivered.', 'info')
        router.push('/profile')
        return
     }
@@ -53,7 +55,7 @@ onMounted(async () => {
 
   } catch (err) {
     console.error('Initialization error:', err)
-    alert('Failed to load review details. Please try again.')
+    uiStore.showNotification('Error', 'Failed to load review details. Please try again.', 'error')
     router.push('/profile')
   } finally {
     loading.value = false
@@ -63,7 +65,7 @@ onMounted(async () => {
 const handleImageUpload = async (e) => {
   const files = Array.from(e.target.files)
   if (images.value.length + files.length > 3) {
-    alert('Maximum 3 images allowed per review.')
+    uiStore.showNotification('Warning', 'Maximum 3 images allowed per review.', 'warning')
     return
   }
 
@@ -88,7 +90,7 @@ const handleImageUpload = async (e) => {
     } catch (err) {
       console.error('Upload failed:', err)
       images.value = images.value.filter(img => img.preview !== preview)
-      alert(`Failed to upload ${file.name}`)
+      uiStore.showNotification('Error', `Failed to upload ${file.name}`, 'error')
     } finally {
       imgRef.value.uploading = false
     }
@@ -100,8 +102,8 @@ const removeImage = (idx) => {
 }
 
 const submitReview = async () => {
-  if (!comment.value.trim()) return alert('Please write a short comment.')
-  if (images.value.some(img => img.uploading)) return alert('Please wait for uploads.')
+  if (!comment.value.trim()) return uiStore.showNotification('Warning', 'Please write a short comment.', 'warning')
+  if (images.value.some(img => img.uploading)) return uiStore.showNotification('Warning', 'Please wait for uploads.', 'warning')
 
   submitting.value = true
   try {
@@ -116,11 +118,11 @@ const submitReview = async () => {
       headers: { Authorization: `Bearer ${authStore.token}` }
     })
 
-    alert('Review submitted! It will appear on the product page after brief moderation.')
+    uiStore.showNotification('Success', 'Review submitted! It will appear on the product page after brief moderation.', 'success')
     router.push('/profile')
   } catch (err) {
     console.error('Submission failed:', err)
-    alert(err.response?.data?.message || 'Failed to submit review.')
+    uiStore.showNotification('Error', err.response?.data?.message || 'Failed to submit review.', 'error')
   } finally {
     submitting.value = false
   }

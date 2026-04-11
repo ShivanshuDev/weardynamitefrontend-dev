@@ -23,6 +23,12 @@ const error = ref('')
 const isLoading = ref(false)
 
 const submitForm = async () => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email.value)) {
+    error.value = 'Please enter a valid email address.'
+    return
+  }
+  
   error.value = ''
   isLoading.value = true
   try {

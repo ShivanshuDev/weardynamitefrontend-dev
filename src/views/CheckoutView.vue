@@ -3,12 +3,14 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useProductStore } from '../stores/productStore'
+import { useUiStore } from '../stores/uiStore'
 import api from '../utils/api'
 import { MapPin, Plus, Check, Home, Landmark, Briefcase } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const productStore = useProductStore()
+const uiStore = useUiStore()
 
 // Navigation guards
 if (!authStore.isLoggedIn) router.push({ path: '/login', query: { redirect: '/checkout' } })
@@ -47,8 +49,13 @@ onMounted(async () => {
 })
 
 const saveNewAddress = async () => {
+  const phoneRegex = /^\d{10}$/
   if (!newAddress.value.street || !newAddress.value.city || !newAddress.value.phone) {
-    return alert('Please fill in all required fields.')
+    return uiStore.showNotification('Missing Information', 'Please fill in all required fields.', 'warning')
+  }
+  
+  if (!phoneRegex.test(newAddress.value.phone.replace(/\s+/g, '').replace(/^\+91/, ''))) {
+    return uiStore.showNotification('Validation Error', 'Receiver\'s phone number must be exactly 10 digits.', 'warning')
   }
   
   isSavingAddress.value = true
@@ -61,7 +68,7 @@ const saveNewAddress = async () => {
       name: 'Home', fullName: authStore.user?.name || '', phone: '', street: '', city: '', state: '', zip: '', country: 'India', isDefault: false
     }
   } catch (err) {
-    alert('Failed to save address. Please try again.')
+    uiStore.showNotification('Error', 'Failed to save address. Please try again.', 'error')
   } finally {
     isSavingAddress.value = false
   }
@@ -78,15 +85,15 @@ const allItemsCodAvailable = computed(() => {
 })
 
 const placeOrder = async () => {
-  if (!selectedAddressId.value) return alert('Please select a delivery address.')
-  if (paymentMethod.value === 'cod' && !productStore.orderSummary.total > 0) return alert('Invalid order amount.')
-  if (!acceptTerms.value) return alert('Please accept the terms and conditions.')
+  if (!selectedAddressId.value) return uiStore.showNotification('Action Required', 'Please select a delivery address.', 'warning')
+  if (paymentMethod.value === 'cod' && !(productStore.orderSummary.total > 0)) return uiStore.showNotification('Error', 'Invalid order amount.', 'error')
+  if (!acceptTerms.value) return uiStore.showNotification('Agreement Missing', 'Please accept the terms and conditions.', 'warning')
 
   const address = authStore.addresses.find(a => a.id.toString() === selectedAddressId.value.toString())
   
   if (!address) {
     console.error('[CHECKOUT ERROR] Selected address not found in store:', selectedAddressId.value)
-    return alert('Please select a valid delivery address or add a new one in your profile.')
+    return uiStore.showNotification('Address Error', 'Please select a valid delivery address or add a new one in your profile.', 'error')
   }
 
   console.log('[CHECKOUT DEBUG] Processing selection for PayU transaction:', { userId: authStore.user.id, addressId: address.id, addressLabel: address.name })

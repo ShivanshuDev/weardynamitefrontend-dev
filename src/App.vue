@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
+import NotificationModal from './components/NotificationModal.vue'
 import { useAuthStore } from './stores/authStore'
 
 const authStore = useAuthStore()
@@ -26,6 +27,7 @@ onMounted(async () => {
       <RouterView />
     </main>
     <Footer />
+    <NotificationModal />
   </div>
 </template>
 

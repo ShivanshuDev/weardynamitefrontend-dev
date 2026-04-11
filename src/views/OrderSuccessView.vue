@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useProductStore } from '../stores/productStore'
+import { useUiStore } from '../stores/uiStore'
 import { 
   CheckCircle2, 
   Package, 
@@ -19,6 +20,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const productStore = useProductStore()
+const uiStore = useUiStore()
 
 const orderId = route.query.id
 const order = ref(null)
@@ -75,12 +77,11 @@ const formatPriceOnly = (price) => {
 }
 
 const handleReturn = (item) => {
-  const isDelivered = order.value.status === 'Delivered' || order.value.status === 'Shipped';
-  if (isDelivered) {
-     alert(`Return request initiated for ${item.product_name || item.name}. Our team will contact you shortly.`);
-  } else {
-     alert(`Cancellation request received for ${item.product_name || item.name}.`);
-  }
+  uiStore.showNotification('Request Received', `Return request initiated for ${item.product_name || item.name}. Our team will contact you shortly.`, 'success')
+}
+
+const handleCancel = (item) => {
+  uiStore.showNotification('Cancellation Received', `Cancellation request received for ${item.product_name || item.name}.`, 'info')
 }
 </script>
 

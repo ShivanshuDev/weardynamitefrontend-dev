@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import api from '../utils/api'
+import { useUiStore } from '../stores/uiStore'
 import { 
   Send, 
   CheckCircle2, 
@@ -13,6 +14,7 @@ import {
 } from 'lucide-vue-next'
 
 const emit = defineEmits(['close'])
+const uiStore = useUiStore()
 
 const loading = ref(false)
 const submitted = ref(false)
@@ -35,6 +37,16 @@ const orderTypes = [
 ]
 
 const handleSubmit = async () => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const phoneRegex = /^\d{10}$/
+
+  if (!emailRegex.test(form.value.email)) {
+    return uiStore.showNotification('Validation Error', 'Please enter a valid email address.', 'warning')
+  }
+  if (!phoneRegex.test(form.value.phone.replace(/\s+/g, '').replace(/^\+91/, ''))) {
+    return uiStore.showNotification('Validation Error', 'Mobile number must be exactly 10 digits.', 'warning')
+  }
+
   loading.value = true
   try {
     const payload = {
@@ -46,13 +58,14 @@ const handleSubmit = async () => {
     const response = await api.post('/inquiries', payload)
 
     if (response.status === 201 || response.status === 200) {
+      uiStore.showNotification('Success', 'Your bulk order inquiry has been submitted. Our team will contact you shortly.', 'success')
       submitted.value = true
     } else {
-      alert('Something went wrong. Please try again.')
+      uiStore.showNotification('Error', 'Something went wrong. Please try again.', 'error')
     }
   } catch (error) {
     console.error('Error submitting inquiry:', error)
-    alert('Failed to connect to server. Please check your internet or try again later.')
+    uiStore.showNotification('Connection Error', 'Failed to connect to server. Please check your internet or try again later.', 'error')
   } finally {
     loading.value = false
   }

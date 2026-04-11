@@ -1,8 +1,9 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useProductStore } from '../stores/productStore'
+import { useUiStore } from '../stores/uiStore'
 import { 
   Package, 
   MessageSquare, 
@@ -19,6 +20,7 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const productStore = useProductStore()
+const uiStore = useUiStore()
 
 // Sync activeTab with route query
 const activeTab = ref('profile') // profile, addresses, orders, settings
@@ -74,7 +76,11 @@ if (!authStore.isLoggedIn) {
 const showAddressForm = ref(false)
 const newAddress = ref({ name: '', fullName: '', street: '', city: '', state: '', zip: '', country: '', phone: '', isDefault: false })
 
+const regex10 = /^\d{10}$/
 const saveAddress = () => {
+  if (newAddress.value.phone && !regex10.test(newAddress.value.phone.replace(/\s+/g, '').replace(/^\+91/, ''))) {
+    return uiStore.showNotification('Validation Error', 'Phone number must be exactly 10 digits.', 'warning')
+  }
   authStore.addAddress({ ...newAddress.value })
   showAddressForm.value = false
   newAddress.value = { name: '', fullName: '', street: '', city: '', state: '', zip: '', country: '', phone: '', isDefault: false }
@@ -109,11 +115,19 @@ const startEditingPersonal = () => {
 }
 
 const savePersonal = async () => {
+  const regex10 = /^\d{10}$/
+  if (personalForm.value.phone && !regex10.test(personalForm.value.phone.replace(/\s+/g, '').replace(/^\+91/, ''))) {
+    return uiStore.showNotification('Validation Error', 'Primary phone number must be exactly 10 digits.', 'warning')
+  }
+  if (personalForm.value.phoneSecondary && !regex10.test(personalForm.value.phoneSecondary.replace(/\s+/g, '').replace(/^\+91/, ''))) {
+    return uiStore.showNotification('Validation Error', 'Secondary phone number must be exactly 10 digits.', 'warning')
+  }
   try {
     await authStore.updateProfile(personalForm.value)
     isEditingPersonal.value = false
+    uiStore.showNotification('Success', 'Profile updated successfully.', 'success')
   } catch (error) {
-    alert('Failed to update profile. Please try again.')
+    uiStore.showNotification('Error', 'Failed to update profile. Please try again.', 'error')
   }
 }
 </script>

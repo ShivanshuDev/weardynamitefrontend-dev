@@ -13,6 +13,9 @@ import {
   Smartphone,
   RotateCcw
 } from 'lucide-vue-next'
+import { useUiStore } from '../stores/uiStore'
+
+const uiStore = useUiStore()
 
 // State
 const activeTab = ref('product') // product, artwork, text, layers
@@ -39,7 +42,7 @@ const selectProduct = (id) => {
 }
 
 const addToCart = () => {
-  alert('Custom design added to cart!')
+  uiStore.showNotification('Success', 'Custom design added to cart!', 'success')
 }
 </script>
 

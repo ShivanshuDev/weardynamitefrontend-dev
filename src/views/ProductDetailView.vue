@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useProductStore } from '../stores/productStore'
+import { useUiStore } from '../stores/uiStore'
 import { Star, Heart, X, MapPin, Truck, Award, RefreshCw, ShieldCheck, Lock, ChevronRight } from 'lucide-vue-next'
 import api from '../utils/api'
 
@@ -10,6 +11,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const productStore = useProductStore()
+const uiStore = useUiStore()
 
 const product = ref(null)
 const loading = ref(true)
@@ -111,12 +113,12 @@ const averageRating = computed(() => {
 
 const addToCart = () => {
   if (!selectedColor.value || !selectedSize.value) {
-    alert("Please select a size and color.")
+    uiStore.showNotification('Selection Required', 'Please select a size and color.', 'warning')
     return
   }
   
   if (isOutOfStock.value) {
-    alert(`The selected option is out of stock.`)
+    uiStore.showNotification('Stock Issue', 'The selected option is out of stock.', 'error')
     return
   }
 
@@ -133,8 +135,8 @@ const addToCart = () => {
 }
 
 const orderNow = () => {
-  if (!selectedColor.value || !selectedSize.value) return alert("Please select a size and color.")
-  if (isOutOfStock.value) return alert(`The selected option is out of stock.`)
+  if (!selectedColor.value || !selectedSize.value) return uiStore.showNotification('Selection Required', 'Please select a size and color.', 'warning')
+  if (isOutOfStock.value) return uiStore.showNotification('Stock Issue', 'The selected option is out of stock.', 'error')
 
   const config = [{
     id: Date.now(),
@@ -154,7 +156,7 @@ const orderNow = () => {
 
 const handleNotifyMe = async () => {
   if (!notifyEmail.value) {
-    alert('Please enter your email address')
+    uiStore.showNotification('Email Required', 'Please enter your email address', 'warning')
     return
   }
   try {
@@ -165,11 +167,11 @@ const handleNotifyMe = async () => {
       size: selectedSize.value,
       email: notifyEmail.value
     })
-    alert(`Success! We'll notify ${notifyEmail.value} when available.`)
+    uiStore.showNotification('Success', `We'll notify ${notifyEmail.value} when available.`, 'success')
     showNotifyModal.value = false
   } catch (error) {
     console.error('Notification failed:', error)
-    alert('Failed to save notification.')
+    uiStore.showNotification('Error', 'Failed to save notification.', 'error')
   }
 }
 

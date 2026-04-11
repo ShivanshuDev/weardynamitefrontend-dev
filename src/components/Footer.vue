@@ -13,7 +13,20 @@ const status = ref('idle') // idle | loading | success | exists | error
 const message = ref('')
 
 const handleSubscribe = async () => {
-  if (!form.value.email) return
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const phoneRegex = /^\d{10}$/
+
+  if (!form.value.email || !emailRegex.test(form.value.email)) {
+    status.value = 'error'
+    message.value = 'Please enter a valid email address.'
+    return
+  }
+
+  if (form.value.phone && !phoneRegex.test(form.value.phone.replace(/\s+/g, '').replace(/^\+91/, ''))) {
+    status.value = 'error'
+    message.value = 'Mobile number must be exactly 10 digits.'
+    return
+  }
   
   status.value = 'loading'
   try {
