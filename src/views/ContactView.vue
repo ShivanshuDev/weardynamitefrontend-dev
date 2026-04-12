@@ -8,17 +8,26 @@ const content = computed(() => productStore.siteContent.contact)
 
 const form = ref({ name: '', mobile: '', email: '', message: '' })
 const submitted = ref(false)
+const isSubmitting = ref(false)
 
-const handleSubmit = () => {
-  productStore.inquiries.push({
-    ...form.value,
-    id: Date.now(),
-    status: 'New',
-    date: new Date().toLocaleString()
-  })
-  submitted.value = true
-  form.value = { name: '', mobile: '', email: '', message: '' }
-  setTimeout(() => submitted.value = false, 5000)
+const handleSubmit = async () => {
+  isSubmitting.value = true
+  try {
+    await productStore.submitInquiry({
+      fullName: form.value.name,
+      email: form.value.email,
+      mobile: form.value.mobile,
+      message: form.value.message
+    })
+    
+    submitted.value = true
+    form.value = { name: '', mobile: '', email: '', message: '' }
+    setTimeout(() => submitted.value = false, 5000)
+  } catch (err) {
+    alert('Failed to send message. Please try again later.')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -66,7 +75,13 @@ const handleSubmit = () => {
             <label for="message">Message</label>
             <textarea v-model="form.message" id="message" rows="5" required placeholder="How can we help you?"></textarea>
           </div>
-          <button type="submit" class="btn submit-btn">Send Message</button>
+          <button 
+            type="submit" 
+            class="btn submit-btn" 
+            :disabled="isSubmitting"
+          >
+            {{ isSubmitting ? 'Sending...' : 'Send Message' }}
+          </button>
         </form>
         <div v-else class="contact-success">
           <CheckCircle :size="48" color="var(--primary-color)" />

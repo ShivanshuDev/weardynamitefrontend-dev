@@ -580,6 +580,22 @@ export const useProductStore = defineStore('products', {
         this.blogLoading = false
       }
     },
+    async submitInquiry(formData) {
+       this.isLoading = true
+       try {
+         const response = await api.post('/inquiries', {
+            ...formData,
+            type: 'contact_form', 
+            status: 'New'
+         });
+         return response.data;
+       } catch (err) {
+         console.error('Inquiry Submission Failed:', err);
+         throw err;
+       } finally {
+         this.isLoading = false
+       }
+    },
     clearCart() {
       this.cart = []
       localStorage.setItem('cart', JSON.stringify([]))
