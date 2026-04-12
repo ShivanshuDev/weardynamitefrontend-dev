@@ -245,6 +245,15 @@ const returnPolicyText = computed(() => {
   padding: 15px 30px;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+  gap: 15px;
+}
+
+@media (max-width: 768px) {
+  .actions-header {
+    flex-direction: column;
+    padding: 20px;
+    text-align: center;
+  }
 }
 
 .success-msg {
@@ -355,6 +364,8 @@ const returnPolicyText = computed(() => {
 /* Table */
 .inv-table-container {
   margin-bottom: 30px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .inv-table {
@@ -528,6 +539,7 @@ const returnPolicyText = computed(() => {
 }
 
 @media screen and (max-width: 768px) {
+  .order-status-view { padding: 20px 10px; }
   .inv-header {
     flex-direction: column;
     gap: 30px;
@@ -540,6 +552,7 @@ const returnPolicyText = computed(() => {
   }
   .inv-addresses {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
   .inv-summary {
     justify-content: flex-start;
@@ -556,7 +569,10 @@ const returnPolicyText = computed(() => {
     align-self: flex-end;
   }
   .paper {
-    padding: 20px;
+    padding: 24px 20px;
+  }
+  .inv-table {
+    min-width: 600px;
   }
 }
 </style>

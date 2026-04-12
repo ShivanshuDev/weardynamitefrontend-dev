@@ -13,7 +13,8 @@ export const useAuthStore = defineStore('auth', {
     inquiries: [],
     notifications: [],
     unreadCount: 0,
-    notifPollingId: null
+    notifPollingId: null,
+    pendingAction: JSON.parse(sessionStorage.getItem('pendingAction')) || null
   }),
   getters: {
     isLoggedIn: (state) => !!state.token,
@@ -293,6 +294,48 @@ export const useAuthStore = defineStore('auth', {
       } catch (error) {
         console.error('Failed to place order:', error);
         throw error;
+      }
+    },
+    setPendingAction(type, data, redirect = null) {
+      this.pendingAction = { type, data, redirect };
+      sessionStorage.setItem('pendingAction', JSON.stringify(this.pendingAction));
+    },
+    clearPendingAction() {
+      this.pendingAction = null;
+      sessionStorage.removeItem('pendingAction');
+    },
+    async executePendingAction() {
+      if (!this.pendingAction) return null;
+      
+      const { type, data, redirect } = this.pendingAction;
+      const productStore = (await import('./productStore')).useProductStore();
+      
+      try {
+        switch (type) {
+          case 'TOGGLE_FAVORITE':
+            if (data.productId) {
+              await productStore.toggleFavorite(data.productId);
+            }
+            break;
+          case 'ADD_TO_CART':
+            if (data.product && data.configs) {
+              await productStore.addToCart(data.configs, data.product);
+            }
+            break;
+          case 'BUY_NOW':
+            if (data.product && data.configs) {
+              await productStore.initiateDirectCheckout(data.configs, data.product);
+            }
+            break;
+        }
+        
+        const res = { type, redirect };
+        this.clearPendingAction();
+        return res;
+      } catch (error) {
+        console.error('Failed to execute pending action:', error);
+        this.clearPendingAction();
+        return null;
       }
     }
   }

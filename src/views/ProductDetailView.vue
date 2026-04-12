@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useProductStore } from '../stores/productStore'
@@ -20,6 +20,11 @@ const selectedImage = ref('')
 const selectedColor = ref('')
 const selectedSize = ref('')
 const quantity = ref(1)
+const isScrolled = ref(false)
+
+const handleScroll = () => {
+  isScrolled.value = window.pageYOffset > 400
+}
 
 const fetchProduct = async () => {
   loading.value = true
@@ -122,7 +127,7 @@ const addToCart = () => {
     return
   }
 
-  const config = [{
+  const configs = [{
     id: Date.now(),
     forWhom: 'Regular',
     size: selectedSize.value,
@@ -130,7 +135,16 @@ const addToCart = () => {
     quantity: quantity.value
   }]
 
-  productStore.addToCart(config, product.value)
+  if (!authStore.isLoggedIn) {
+    authStore.setPendingAction('ADD_TO_CART', { 
+      product: product.value, 
+      configs: configs
+    }, route.fullPath);
+    router.push('/login');
+    return;
+  }
+
+  productStore.addToCart(configs, product.value)
   router.push('/cart')
 }
 
@@ -138,7 +152,7 @@ const orderNow = () => {
   if (!selectedColor.value || !selectedSize.value) return uiStore.showNotification('Selection Required', 'Please select a size and color.', 'warning')
   if (isOutOfStock.value) return uiStore.showNotification('Stock Issue', 'The selected option is out of stock.', 'error')
 
-  const config = [{
+  const configs = [{
     id: Date.now(),
     forWhom: 'Regular',
     size: selectedSize.value,
@@ -146,12 +160,26 @@ const orderNow = () => {
     quantity: quantity.value
   }]
 
-  productStore.initiateDirectCheckout(config, product.value)
-  if (authStore.isLoggedIn) {
-    router.push('/checkout')
-  } else {
-    router.push({ path: '/login', query: { redirect: '/checkout' } })
+  if (!authStore.isLoggedIn) {
+    authStore.setPendingAction('BUY_NOW', { 
+      product: product.value, 
+      configs: configs
+    }, route.fullPath);
+    router.push('/login');
+    return;
   }
+
+  productStore.initiateDirectCheckout(configs, product.value)
+  router.push('/checkout')
+}
+
+const toggleFavorite = () => {
+  if (!authStore.isLoggedIn) {
+    authStore.setPendingAction('TOGGLE_FAVORITE', { productId: product.value.id }, route.fullPath);
+    router.push('/login');
+    return;
+  }
+  productStore.toggleFavorite(product.value.id)
 }
 
 const handleNotifyMe = async () => {
@@ -178,6 +206,11 @@ const handleNotifyMe = async () => {
 onMounted(() => {
   fetchProduct()
   fetchReviews()
+  window.addEventListener('scroll', handleScroll)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
 })
 </script>
 
@@ -219,7 +252,7 @@ onMounted(() => {
           
           <div class="main-image-container">
             <button 
-              @click.prevent="productStore.toggleFavorite(product.id)" 
+              @click.prevent="toggleFavorite" 
               class="wishlist-btn"
               title="Add to Wishlist"
             >
@@ -482,6 +515,14 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Mobile Floating Actions -->
+    <Transition name="slide-up">
+      <div v-if="isScrolled && product && !isOutOfStock" class="mobile-floating-actions mobile-only-flex">
+        <button @click="addToCart" class="float-btn cart">Add to Cart</button>
+        <button @click="orderNow" class="float-btn buy">Buy Now</button>
+      </div>
+    </Transition>
+
   </div>
 </template>
 
@@ -516,68 +557,87 @@ onMounted(() => {
 .loader-text { font-weight: 900; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; }
 
 .product-container { max-width: 1400px; margin: 0 auto; padding: 40px 20px; }
+@media (max-width: 768px) {
+  .product-container { padding: 20px 15px; }
+}
 
-.breadcrumbs { display: flex; align-items: center; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; margin-bottom: 40px; }
+.breadcrumbs { display: flex; align-items: center; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 25px; overflow-x: auto; white-space: nowrap; padding-bottom: 5px; }
+@media (min-width: 769px) {
+  .breadcrumbs { font-size: 12px; letter-spacing: 2px; margin-bottom: 40px; }
+}
 .breadcrumbs a { color: #94a3b8; text-decoration: none; transition: color 0.2s; }
 .breadcrumbs a:hover { color: #000; }
-.breadcrumbs .icon { margin: 0 10px; }
+.breadcrumbs .icon { margin: 0 8px; flex-shrink: 0; }
 .breadcrumbs span { color: #000; }
 
-.main-grid { display: grid; gap: 40px; }
+.main-grid { display: grid; gap: 30px; }
 @media(min-width: 1024px) {
   .main-grid { grid-template-columns: 5fr 4fr 3fr; gap: 60px; }
 }
 
 /* Left: Gallery */
-.gallery-col { display: flex; gap: 20px; flex-direction: column-reverse; align-items: flex-start; }
+.gallery-col { display: flex; gap: 15px; flex-direction: column; align-items: center; width: 100%; overflow: hidden; }
 @media(min-width: 1024px) {
-  .gallery-col { flex-direction: row; position: sticky; top: 40px; height: max-content; }
+  .gallery-col { flex-direction: row; position: sticky; top: 40px; height: max-content; align-items: flex-start; }
 }
 
-.thumbnails-container { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; margin-top: 10px;}
+.thumbnails-container { 
+  display: flex; 
+  gap: 10px; 
+  overflow-x: auto; 
+  padding: 5px; 
+  width: 100%;
+  justify-content: flex-start;
+  -webkit-overflow-scrolling: touch;
+}
+.thumbnails-container::-webkit-scrollbar { display: none; }
+
 @media(min-width: 1024px) {
-  .thumbnails-container { flex-direction: column; overflow: visible; padding: 0; margin: 0;}
+  .thumbnails-container { flex-direction: column; overflow: visible; padding: 0; margin-right: 20px; width: auto;}
 }
 
-.thumb-btn { width: 64px; height: 80px; border-radius: 12px; overflow: hidden; border: 2px solid transparent; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+.thumb-btn { width: 60px; height: 75px; border-radius: 10px; overflow: hidden; border: 2px solid transparent; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
 .thumb-btn img { width: 100%; height: 100%; object-fit: cover; background: #f1f5f9; }
 .thumb-btn:hover { border-color: #cbd5e1; }
 .thumb-btn.active { border-color: #000; box-shadow: 0 0 0 4px rgba(0,0,0,0.05); }
 
-.main-image-container { flex: 1; border-radius: 24px; background: #fff; border: 1px solid #e2e8f0; overflow: hidden; position: relative; aspect-ratio: 4/5; width: 100%; }
+.main-image-container { flex: 1; border-radius: 24px; background: #fff; border: 1px solid #e2e8f0; overflow: hidden; position: relative; aspect-ratio: 4/5; width: 100%; max-width: 100%; }
 .main-item-img { width: 100%; height: 100%; object-fit: contain; }
-.wishlist-btn { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; background: rgba(255,255,255,0.9); backdrop-filter: blur(4px); border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: transform 0.2s; }
+.wishlist-btn { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; background: rgba(255,255,255,0.9); backdrop-filter: blur(4px); border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 5; transition: transform 0.2s; }
 .wishlist-btn:hover { transform: scale(1.1); }
 .wishlist-btn .filled { fill: #ef4444; color: #ef4444; }
 
 /* Middle: Info */
-.info-col { display: flex; flex-direction: column; }
-.brand-link { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #2563eb; text-decoration: none; margin-bottom: 12px; }
+.info-col { display: flex; flex-direction: column; overflow: hidden; }
+.brand-link { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #2563eb; text-decoration: none; margin-bottom: 8px; }
+@media (min-width: 769px) { .brand-link { font-size: 12px; letter-spacing: 2px; } }
 .brand-link:hover { color: #1d4ed8; }
-.product-title { font-size: 36px; font-weight: 900; line-height: 1.2; margin-bottom: 16px; letter-spacing: -0.5px; }
+.product-title { font-size: clamp(1.4rem, 6vw, 2.25rem); font-weight: 900; line-height: 1.2; margin-bottom: 12px; letter-spacing: -0.5px; }
 
-.rating-row { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+.rating-row { display: flex; align-items: center; gap: 12px; font-size: 14px; flex-wrap: wrap; }
 .stars { display: flex; }
 .active-star { fill: #fbbf24; color: #fbbf24; }
 .inactive-star { fill: #f1f5f9; color: #e2e8f0; }
 .review-link { font-weight: 700; color: #2563eb; text-decoration: none; }
 .review-link:hover { text-decoration: underline; }
 
-.divider { height: 1px; background: #e2e8f0; margin: 30px 0; }
+.divider { height: 1px; background: #e2e8f0; margin: 20px 0; }
 
 /* Price section */
-.deal-badge { display: inline-block; padding: 6px 12px; background: #dc2626; color: #fff; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; border-radius: 8px; margin-bottom: 16px; }
-.price-major { display: flex; align-items: baseline; gap: 16px; margin-bottom: 4px; }
-.discount-rate { font-size: 32px; font-weight: 300; color: #dc2626; }
-.price-amount { font-size: 42px; font-weight: 900; line-height: 1; }
-.price-amount .currency { font-size: 24px; vertical-align: top; margin-top: 4px; display: inline-block; margin-right: 2px;}
+.deal-badge { display: inline-block; padding: 4px 10px; background: #dc2626; color: #fff; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; border-radius: 6px; margin-bottom: 12px; }
+.price-major { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+.discount-rate { font-size: 24px; font-weight: 300; color: #dc2626; }
+@media (min-width: 769px) { .discount-rate { font-size: 28px; } }
+.price-amount { font-size: 30px; font-weight: 900; line-height: 1; }
+@media (min-width: 769px) { .price-amount { font-size: 36px; } }
+.price-amount .currency { font-size: 18px; vertical-align: top; margin-top: 2px; display: inline-block; margin-right: 2px;}
 .mrp-row { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .mrp-label { color: #64748b; font-weight: 700; }
 .mrp-value { color: #94a3b8; text-decoration: line-through; font-weight: 500; }
-.tax-info { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px; }
+.tax-info { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px; }
 
 /* Offers Box */
-.offers-box { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 24px; margin: 30px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+.offers-box { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 20px; margin: 25px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
 .offers-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
 .percent-icon { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: #000; color: #fff; border-radius: 50%; font-size: 12px; font-weight: 900; }
 .offers-header h3 { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; }
@@ -590,11 +650,16 @@ onMounted(() => {
 .offer-card a:hover { color: #1d4ed8; }
 
 /* Trust Icons */
-.trust-icons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 30px 0; margin-bottom: 30px; }
+.trust-icons { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 25px 0; margin-bottom: 25px; }
+@media (min-width: 640px) {
+  .trust-icons { grid-template-columns: repeat(4, 1fr); padding: 30px 0; margin-bottom: 30px; }
+}
 .trust-item { display: flex; flex-direction: column; items: center; text-align: center; cursor: pointer; align-items: center;}
-.icon-circle { width: 52px; height: 52px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #475569; margin-bottom: 12px; transition: all 0.2s; }
+.icon-circle { width: 44px; height: 44px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #475569; margin-bottom: 8px; transition: all 0.2s; }
+@media (min-width: 769px) { .icon-circle { width: 52px; height: 52px; margin-bottom: 12px; } }
 .trust-item:hover .icon-circle { background: #eff6ff; color: #2563eb; transform: translateY(-3px); }
-.trust-item span { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; }
+.trust-item span { font-size: 9px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; }
+@media (min-width: 769px) { .trust-item span { font-size: 10px; } }
 
 /* Selectors */
 .selectors-wrapper { display: flex; flex-direction: column; gap: 24px; margin-bottom: 40px; }
@@ -629,18 +694,21 @@ onMounted(() => {
 .html-desc { font-size: 14px; color: #475569; line-height: 1.8; }
 
 /* Right: Buy Box */
-.buy-col { position: relative; }
-.buy-box { background: #fff; border-radius: 24px; border: 1px solid #e2e8f0; box-shadow: 0 20px 40px rgba(0,0,0,0.05); padding: 32px; position: sticky; top: 40px; }
-.buy-price { font-size: 32px; font-weight: 900; margin-bottom: 12px; }
-.buy-price .curr { font-size: 20px; font-weight: 700; margin-right: 4px; }
-.prime-tag { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
-.prime-logo { font-size: 20px; font-weight: 900; font-style: italic; color: #3b82f6; letter-spacing: -1px; }
-.prime-speed { background: #eff6ff; color: #3b82f6; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+.buy-col { position: relative; width: 100%; }
+.buy-box { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(0,0,0,0.05); padding: 20px; position: relative;}
+@media (min-width: 1024px) {
+  .buy-box { border-radius: 24px; padding: 25px; position: sticky; top: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); }
+}
+.buy-price { font-size: 28px; font-weight: 900; margin-bottom: 12px; }
+.buy-price .curr { font-size: 18px; font-weight: 700; margin-right: 4px; }
+.prime-tag { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; }
+.prime-logo { font-size: 18px; font-weight: 900; font-style: italic; color: #3b82f6; letter-spacing: -1px; }
+.prime-speed { background: #eff6ff; color: #3b82f6; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
 
-.delivery-p { font-size: 14px; font-weight: 500; color: #475569; line-height: 1.6; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 20px; }
+.delivery-p { font-size: 13px; font-weight: 500; color: #475569; line-height: 1.5; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 15px; }
 .delivery-p .free { font-weight: 800; }
-.delivery-p .highlight { display: block; font-weight: 900; font-size: 16px; color: #000; margin-top: 4px; }
-.delivery-p .timer { display: block; font-size: 12px; color: #94a3b8; margin-top: 4px; }
+.delivery-p .highlight { display: block; font-weight: 900; font-size: 15px; color: #000; margin-top: 4px; }
+.delivery-p .timer { display: block; font-size: 11px; color: #94a3b8; margin-top: 4px; }
 
 .location-btn { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #2563eb; cursor: pointer; margin-bottom: 24px; transition: color 0.2s; }
 .location-btn:hover { color: #1d4ed8; }
@@ -690,4 +758,57 @@ onMounted(() => {
 .modal-forms input { padding: 16px 20px; border: 2px solid #e2e8f0; border-radius: 16px; background: #f8fafc; font-size: 14px; font-weight: 500; outline: none; transition: border 0.2s; }
 .modal-forms input:focus { border-color: #000; }
 .btn-notify-submit { background: #000; color: #fff; padding: 16px; border-radius: 16px; font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; }
+
+/* Mobile Floating Actions */
+.mobile-floating-actions {
+  position: fixed;
+  bottom: 145px; /* Above ScrollToTop (85px) */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  width: calc(100% - 30px);
+  max-width: 400px;
+  z-index: 1100;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  padding: 10px;
+  border-radius: 100px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.float-btn {
+  flex: 1;
+  height: 48px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+  cursor: pointer;
+}
+
+.float-btn.cart {
+  background: #FFD814;
+  color: #000;
+}
+
+.float-btn.buy {
+  background: #FFA41C;
+  color: #000;
+}
+
+/* Slide Up Transition */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 30px);
+}
 </style>

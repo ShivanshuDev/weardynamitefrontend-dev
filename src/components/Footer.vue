@@ -348,7 +348,12 @@ const handleSubscribe = async () => {
 
 @media (max-width: 1024px) {
   .footer-content {
+    display: grid;
     grid-template-columns: repeat(2, 1fr);
+  }
+  .subscribe-col {
+    grid-column: span 2;
+    min-width: unset;
   }
 }
 
@@ -357,7 +362,10 @@ const handleSubscribe = async () => {
     grid-template-columns: 1fr;
     text-align: center;
   }
+  .subscribe-col {
+    grid-column: span 1;
+  }
   .social-links { justify-content: center; }
-  .subscribe-form { max-width: 400px; margin: 0 auto; }
+  .subscribe-form-v2 { max-width: 400px; margin: 0 auto; width: 100%; }
 }
 </style>

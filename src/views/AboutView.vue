@@ -85,9 +85,10 @@ import { ShieldCheck, Truck, RotateCcw } from 'lucide-vue-next'
 
 .about-hero h1 {
   font-family: var(--font-heading);
-  font-size: 4rem;
+  font-size: clamp(2.2rem, 10vw, 4rem);
   margin-bottom: 20px;
   text-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  padding: 0 20px;
 }
 
 .about-hero p {
@@ -137,7 +138,7 @@ import { ShieldCheck, Truck, RotateCcw } from 'lucide-vue-next'
 
 .mission-text h2 {
   font-family: var(--font-heading);
-  font-size: 2.8rem;
+  font-size: clamp(1.8rem, 6vw, 2.8rem);
   line-height: 1.2;
   margin-bottom: 30px;
 }
@@ -222,18 +223,15 @@ import { ShieldCheck, Truck, RotateCcw } from 'lucide-vue-next'
 }
 
 @media (max-width: 992px) {
+  .mission-section, .values-section { padding: 60px 15px; }
   .mission-section .align-center {
     grid-template-columns: 1fr;
     gap: 40px;
   }
   .features-grid {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
-}
-
-@media (max-width: 576px) {
-  .about-hero h1 {
-    font-size: 2.8rem;
-  }
+  .feature-card { padding: 40px 25px; }
 }
 </style>

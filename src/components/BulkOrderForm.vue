@@ -10,7 +10,8 @@ import {
   School, 
   Briefcase, 
   ChevronRight,
-  ArrowLeft
+  ArrowLeft,
+  X 
 } from 'lucide-vue-next'
 
 const emit = defineEmits(['close'])
@@ -28,6 +29,15 @@ const form = ref({
   estimatedQty: '',
   message: ''
 })
+
+const showMobileForm = ref(false)
+
+const handleTypeSelect = (typeId) => {
+  form.value.orderType = typeId
+  if (window.innerWidth <= 1024) {
+    showMobileForm.value = true
+  }
+}
 
 const orderTypes = [
   { id: 'team', label: 'Cricket/Sports Team', icon: Trophy, desc: 'Professional jerseys and kit' },
@@ -68,6 +78,9 @@ const handleSubmit = async () => {
     uiStore.showNotification('Connection Error', 'Failed to connect to server. Please check your internet or try again later.', 'error')
   } finally {
     loading.value = false
+    if (submitted.value) {
+      showMobileForm.value = false
+    }
   }
 }
 </script>
@@ -95,7 +108,7 @@ const handleSubmit = async () => {
               :key="type.id"
               class="type-card"
               :class="{ active: form.orderType === type.id }"
-              @click="form.orderType = type.id"
+              @click="handleTypeSelect(type.id)"
             >
               <div class="type-icon">
                 <component :is="type.icon" :size="24" />
@@ -109,8 +122,8 @@ const handleSubmit = async () => {
           </div>
         </div>
 
-        <!-- Right Side: Details -->
-        <div class="details-form">
+        <!-- Right Side: Details (Desktop) -->
+        <div class="details-form desktop-only">
           <h3 class="section-label">2. Your Information</h3>
           <form @submit.prevent="handleSubmit" class="main-form">
             <div class="input-row">
@@ -158,6 +171,54 @@ const handleSubmit = async () => {
             </button>
           </form>
         </div>
+
+        <!-- Mobile Popup -->
+        <Transition name="slide-up">
+          <div v-if="showMobileForm" class="mobile-form-popup">
+            <div class="popup-overlay" @click="showMobileForm = false"></div>
+            <div class="popup-container">
+              <div class="popup-header">
+                <h3>Submit Inquiry</h3>
+                <button @click="showMobileForm = false" class="close-popup"><X :size="20" /></button>
+              </div>
+              <div class="popup-body">
+                <p class="selected-category">Category: <strong>{{ orderTypes.find(t => t.id === form.orderType)?.label }}</strong></p>
+                <form @submit.prevent="handleSubmit" class="main-form-mobile">
+                  <div class="input-group">
+                    <label>Full Name</label>
+                    <input v-model="form.fullName" type="text" placeholder="Rahul Sharma" required />
+                  </div>
+                  <div class="input-group">
+                    <label>Org / Team Name</label>
+                    <input v-model="form.orgName" type="text" placeholder="Cricket Club Name" required />
+                  </div>
+                  <div class="input-row-mobile">
+                    <div class="input-group">
+                      <label>Email</label>
+                      <input v-model="form.email" type="email" required />
+                    </div>
+                    <div class="input-group">
+                      <label>WhatsApp</label>
+                      <input v-model="form.phone" type="tel" required />
+                    </div>
+                  </div>
+                  <div class="input-group">
+                    <label>Estimated Quantity</label>
+                    <input v-model="form.estimatedQty" type="number" required />
+                  </div>
+                  <div class="input-group">
+                    <label>Requirements</label>
+                    <textarea v-model="form.message" rows="3" required></textarea>
+                  </div>
+                  <button type="submit" class="submit-btn" :disabled="loading">
+                    <span v-if="!loading">Submit Inquiry <Send :size="18" /></span>
+                    <span v-else class="loader"></span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </Transition>
       </div>
     </div>
 
@@ -196,7 +257,7 @@ const handleSubmit = async () => {
 }
 
 .form-title {
-  font-size: 32px;
+  font-size: clamp(1.8rem, 6vw, 2rem);
   font-weight: 900;
   margin-bottom: 8px;
   letter-spacing: -0.5px;
@@ -454,19 +515,86 @@ const handleSubmit = async () => {
     grid-template-columns: 1fr;
     gap: 40px;
   }
+  .desktop-only { display: none !important; }
+}
+
+/* Mobile Popup Styling */
+.mobile-form-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.popup-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+}
+
+.popup-container {
+  position: relative;
+  width: 100%;
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+  padding: 24px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.popup-header h3 { font-size: 1.2rem; font-weight: 800; }
+.close-popup { background: #f1f5f9; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+
+.selected-category { 
+  font-size: 13px; margin-bottom: 20px; color: #64748b; 
+  background: #f8fafc; padding: 10px; border-radius: 8px;
+}
+
+.main-form-mobile .input-group { margin-bottom: 20px; }
+.main-form-mobile .input-group label { font-size: 11px; margin-bottom: 8px; font-weight: 800; color: #475569; }
+.main-form-mobile input, .main-form-mobile textarea { padding: 14px; font-size: 15px; border-radius: 12px; }
+.input-row-mobile { display: grid; grid-template-columns: 1fr; gap: 0; }
+
+/* Slide Up Transition */
+.slide-up-enter-active, .slide-up-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slide-up-enter-from, .slide-up-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
 }
 
 @media (max-width: 640px) {
+  .bulk-order-container { padding: 10px 0; }
   .input-row {
     grid-template-columns: 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
   }
   .form-header {
     flex-direction: column;
     gap: 20px;
+    text-align: center;
+    align-items: center;
   }
   .main-form {
-    padding: 24px;
+    padding: 20px;
   }
+  .type-card { padding: 16px; gap: 12px; }
+  .type-icon { width: 40px; height: 40px; }
+  .type-info h4 { font-size: 14px; }
+  .type-info p { font-size: 12px; }
 }
 
 .loader {

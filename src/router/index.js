@@ -133,7 +133,38 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    } else {
+      return { top: 0 }
+    }
+  }
 })
+
+// Guest redirection guard
+router.beforeEach(async (to, from, next) => {
+  const authStore = (await import('../stores/authStore')).useAuthStore();
+  
+  const publicPaths = [
+    '/', '/shop', '/login', '/register', '/about', '/contact', 
+    '/process', '/customize', '/blog', '/faq', '/shipping-returns', 
+    '/terms', '/privacy-policy'
+  ];
+  
+  const isPublic = publicPaths.includes(to.path) || 
+                   to.path.startsWith('/product/') || 
+                   to.path.startsWith('/blog/') ||
+                   to.path.startsWith('/customize/');
+
+  if (!authStore.isLoggedIn && !isPublic) {
+    // If not logged in and trying to access protected route (Cart, Profile, etc.)
+    // Redirect to home page as requested
+    return next('/');
+  }
+
+  next();
+});
 
 export default router

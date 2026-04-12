@@ -64,10 +64,42 @@ const getAlignmentClasses = (align) => {
   }
   return map[align] || map['middle-left']
 }
+
+const mobileCategories = [
+  { name: 'Men', image: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?w=200', link: '/shop?gender=Men' },
+  { name: 'Women', image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=200', link: '/shop?gender=Women' },
+  { name: 'Kids', image: 'https://images.unsplash.com/photo-1514090225131-7b0df0c8f180?w=200', link: '/shop?gender=Kids' },
+  { name: 'Latest', image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=200', link: '/shop?latest=true' },
+  { name: 'Custom', image: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=200', link: '/customize' },
+  { name: 'Sale', image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200', link: '/shop?sale=true' }
+]
 </script>
 
 <template>
   <div class="home-view">
+    <!-- Category Circles (Mobile Only) -->
+    <div class="mobile-categories mobile-only-flex">
+      <div class="category-scroll">
+        <RouterLink 
+          v-for="cat in mobileCategories" 
+          :key="cat.name" 
+          :to="cat.link"
+          class="category-circle-item"
+        >
+          <div class="circle-image">
+            <img :src="cat.image" :alt="cat.name" />
+          </div>
+          <span>{{ cat.name }}</span>
+        </RouterLink>
+      </div>
+    </div>
+
+    <!-- Trust Strips (Mobile Mini) -->
+    <div class="mobile-trust-strip mobile-only-flex">
+      <div class="trust-pill"><Truck :size="14" /> Free Delivery</div>
+      <div class="trust-pill"><RotateCcw :size="14" /> 7-Day Returns</div>
+      <div class="trust-pill"><ShieldCheck :size="14" /> Secure Payment</div>
+    </div>
     
     <!-- Dynamic Hero Carousel Section (Admin MOCK Array) -->
     <section class="hero-carousel">
@@ -118,21 +150,8 @@ const getAlignmentClasses = (align) => {
       </div>
     </section>
 
-    <!-- Trust Features Bar (Original Restored) -->
-    <section class="trust-features container">
-      <div class="trust-grid">
-        <div v-for="(feat, idx) in (productStore.siteContent?.home?.trustFeatures || [])" :key="idx" class="trust-item">
-          <component :is="feat.icon === 'Truck' ? Truck : (feat.icon === 'RotateCcw' ? RotateCcw : ShieldCheck)" :size="36" color="#000" />
-          <div class="trust-text">
-            <h4>{{ feat.title }}</h4>
-            <p>{{ feat.subtitle }}</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- Mega Promotional Banners (Alternating Full Width) -->
-    <section class="mega-promos container">
+    <section class="mega-promos container" v-if="productStore.siteContent?.home?.megaPromos?.length > 0">
       
       <div 
         v-for="(promo, idx) in productStore.siteContent.home.megaPromos" 
@@ -164,6 +183,19 @@ const getAlignmentClasses = (align) => {
       </div>
       <div class="product-grid">
         <ProductCard v-for="product in bestSellers" :key="product.id" :product="product" />
+      </div>
+    </section>
+
+    <!-- Trust Features Bar (Moved Below Most Popular) -->
+    <section class="trust-features container">
+      <div class="trust-grid">
+        <div v-for="(feat, idx) in (productStore.siteContent?.home?.trustFeatures || [])" :key="idx" class="trust-item">
+          <component :is="feat.icon === 'Truck' ? Truck : (feat.icon === 'RotateCcw' ? RotateCcw : ShieldCheck)" :size="36" color="#000" />
+          <div class="trust-text">
+            <h4>{{ feat.title }}</h4>
+            <p>{{ feat.subtitle }}</p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -363,8 +395,8 @@ const getAlignmentClasses = (align) => {
 
 .slide-content h1 {
   font-family: var(--font-heading);
-  font-size: clamp(2.5rem, 6vw, 4.8rem);
-  line-height: 0.9;
+  font-size: clamp(2.5rem, 8vw, 4.8rem);
+  line-height: 0.95;
   margin-bottom: 20px;
   text-shadow: 0 10px 40px rgba(0,0,0,0.5);
   white-space: pre-line;
@@ -450,14 +482,19 @@ const getAlignmentClasses = (align) => {
 .transparent:hover { background: #fff; color: #000; border-color: #fff; }
 
 /* Trust Bar (Restored) */
-.trust-features { padding: 60px 20px; border-bottom: 1px solid #eee; }
-.trust-grid { display: flex; justify-content: space-between; gap: 30px; }
-.trust-item { display: flex; align-items: center; gap: 20px; flex: 1; padding: 20px; background: #fafafa; border-radius: 8px; }
+.trust-features { padding: 30px 20px; border-bottom: 1px solid #f1f5f9; }
+.trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+.trust-item { display: flex; align-items: center; gap: 20px; padding: 20px; background: #fafafa; border-radius: 8px; }
+
+@media (max-width: 1024px) {
+  .trust-grid { grid-template-columns: 1fr; gap: 15px; }
+}
+
 .trust-text h4 { font-size: 1.1rem; margin-bottom: 5px; color: #000; }
 .trust-text p { font-size: 0.95rem; color: #666; margin: 0; }
 
 /* Mega Promotional Banners (Full Width) */
-.mega-promos { display: flex; flex-direction: column; margin-top: 100px; margin-bottom: 80px; }
+.mega-promos { display: flex; flex-direction: column; margin-top: 40px; margin-bottom: 40px; }
 .mega-banner { position: relative; min-height: 120px; padding: 40px 0; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 30px; border-radius: 12px; }
 .mega-banner img { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; z-index:1; }
 .mega-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%); z-index:2; }
@@ -472,16 +509,28 @@ const getAlignmentClasses = (align) => {
 .btn-white:hover { background: #f0f0f0; }
 
 /* Grids (New Arrivals / Best Sellers) */
-.best-sellers, .new-arrivals { margin-bottom: 100px; }
-.section-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 50px; border-bottom: 2px solid #000; padding-bottom: 15px; }
-.section-title { font-family: var(--font-heading); font-size: 2.5rem; margin-bottom: 5px; }
-.section-subtitle { color: #666; font-size: 1.1rem; }
+.best-sellers, .new-arrivals { margin-bottom: 60px; }
+.section-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+.section-title { font-family: var(--font-heading); font-size: clamp(1.8rem, 5vw, 2.5rem); margin-bottom: 5px; }
+.section-subtitle { color: #666; font-size: clamp(0.9rem, 2vw, 1.1rem); }
 .view-all { font-weight: 600; color: #000; text-decoration: none; font-size: 1.05rem; padding-bottom: 5px; transition: opacity 0.2s; }
 .view-all:hover { opacity: 0.6; }
 .product-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px; }
 
+@media (max-width: 1280px) {
+  .product-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 992px) {
+  .product-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .product-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; }
+}
+
 /* Craftsmanship Banners */
-.craftsmanship-section { margin-bottom: 100px; }
+.craftsmanship-section { margin-bottom: 60px; }
 .craft-slider-container { position: relative; width: 100%; height: 500px; overflow: hidden; }
 .craft-slider-track { display: flex; height: 100%; width: 100%; transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
 .craft-slide { flex: 0 0 100%; position: relative; display: flex; align-items: center; justify-content: center; }
@@ -492,7 +541,7 @@ const getAlignmentClasses = (align) => {
 .craft-content p { font-size: 1.3rem; line-height: 1.6; color: #eee !important; max-width: 600px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
 
 /* Brand Video Statement */
-.brand-video-section { background: #050505; color: #fff; padding: 120px 0; margin-bottom: 100px; }
+.brand-video-section { background: #050505; color: #fff; padding: 60px 0; margin-bottom: 60px; }
 .branding-layout { display: grid; grid-template-columns: 1.2fr 1.5fr; gap: 80px; align-items: center; }
 .brand-text h2 { font-family: var(--font-heading); font-size: 3.5rem; margin-bottom: 25px; line-height: 1.1; }
 .brand-text p { font-size: 1.15rem; line-height: 1.8; color: #aaa; margin-bottom: 30px; }
@@ -503,14 +552,14 @@ const getAlignmentClasses = (align) => {
 .play-btn-wrapper { position: absolute; top:50%; left:50%; transform: translate(-50%, -50%); z-index:2; width:80px; height:80px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; border: 2px solid rgba(255,255,255,0.2); }
 
 /* VIP Banner */
-.ad-banner { text-align: center; padding: 120px 40px; margin-bottom: 100px; position: relative; overflow: hidden; transition: background-color 0.4s ease; }
+.ad-banner { text-align: center; padding: 60px 40px; margin-bottom: 60px; position: relative; overflow: hidden; transition: background-color 0.4s ease; }
 .ad-banner::before { content: ''; position: absolute; top:-50%; right:-20%; width:600px; height:600px; background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%); border-radius: 50%; z-index:1; }
 .ad-content { position: relative; z-index:2; max-width: 650px; margin: 0 auto; }
 .ad-content h2 { font-family: var(--font-heading); font-size: 2.8rem; margin-bottom: 20px; color: #111; }
 .ad-content p { color: #444; font-size: 1.2rem; margin-bottom: 40px; line-height: 1.6; }
 
 /* What We Do Hook */
-.what-we-do-hook { display: flex; align-items: center; gap: 60px; margin-bottom: 100px; padding: 60px; background: #fafafa; border-radius: 12px; }
+.what-we-do-hook { display: flex; align-items: center; gap: 40px; margin-bottom: 60px; padding: 40px; background: #fafafa; border-radius: 12px; }
 .hook-content { flex: 1; text-align: left; }
 .hook-content h2 { font-family: var(--font-heading); font-size: 3.5rem; margin-bottom: 20px; color: #111; line-height: 1.1; }
 .hook-content p { font-size: 1.15rem; color: #555; line-height: 1.7; margin-bottom: 30px; max-width: 500px; }
@@ -518,7 +567,7 @@ const getAlignmentClasses = (align) => {
 .hook-image img { width: 100%; display: block; }
 
 /* Gender Collections */
-.gender-collections { margin-bottom: 100px; }
+.gender-collections { margin-bottom: 60px; }
 .gender-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
 .gender-banner { position: relative; height: 500px; border-radius: 8px; overflow: hidden; background-size: cover; background-position: center; display: flex; align-items: flex-end; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
 .men-bg { background-image: url('https://images.unsplash.com/photo-1617137968427-85924c800a22?q=80&w=800&auto=format&fit=crop'); }
@@ -533,11 +582,10 @@ const getAlignmentClasses = (align) => {
 
 
 @media (max-width: 992px) {
+  .hero-carousel { height: 70vh; min-height: 500px; }
   .slide-content h1 { font-size: 3.5rem; }
-  .trust-grid { flex-direction: column; }
   .mega-text-box { padding: 40px; max-width: 400px; }
   .mega-text-box h2 { font-size: 2.8rem; }
-  .product-grid { grid-template-columns: repeat(3, 1fr); }
   .craft-content h3 { font-size: 2.5rem; }
   .branding-layout { grid-template-columns: 1fr; text-align: center; gap: 50px; }
   .perk-list { align-items: center; }
@@ -546,15 +594,121 @@ const getAlignmentClasses = (align) => {
 }
 
 @media (max-width: 576px) {
-  .slide-content h1 { font-size: 2.8rem; }
-  .hero-actions { flex-direction: column; }
-  .section-header { flex-direction: column; align-items: flex-start; gap: 15px; }
-  .what-we-do-hook { flex-direction: column; padding: 40px 20px; text-align: center; }
-  .hook-content p { max-width: 100%; }
-  .mega-banner { padding: 30px 0; }
-  .mega-content { justify-content: center !important; padding: 0 !important; }
-  .mega-text-box { padding: 20px; text-align: center; background: rgba(0,0,0,0.6); border-radius: 8px; }
-  .mega-text-box h2 { font-size: 1.8rem; }
-  .product-grid { grid-template-columns: 1fr; }
+  .hero-carousel { height: 30vh; min-height: 220px; }
+  .slide-bg { background-size: cover; background-position: center 20%; }
+  .slider-btn { display: none !important; }
+  .slide-content { display: none !important; }
+  .hero-actions { display: none !important; }
+  .slide-overlay { display: none !important; } /* Hide overlay too if showing only image */
+  .section-header { flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 25px; }
+  .section-title { font-size: 1.6rem; }
+  .section-subtitle { font-size: 0.85rem; }
+  .product-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+}
+
+/* Meesho Style Mobile Adjustments */
+.mobile-categories {
+  background: #fff;
+  padding: 15px 0 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.category-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 20px;
+  padding: 0 15px;
+  scrollbar-width: none;
+}
+
+.category-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.category-circle-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.circle-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #f1f5f9;
+}
+
+.circle-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.category-circle-item span {
+  font-size: 11px;
+  font-weight: 700;
+  color: #333;
+}
+
+.mobile-trust-strip {
+  background: #f8fafc;
+  padding: 8px 10px;
+  gap: 6px;
+  justify-content: center;
+}
+
+.trust-pill {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #64748b;
+  background: white;
+  padding: 4px 8px;
+  border-radius: 99px;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.mobile-only-flex {
+  display: none;
+}
+
+@media (max-width: 992px) {
+  .mobile-only-flex {
+    display: flex;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-carousel {
+    height: 30vh;
+    min-height: 220px;
+  }
+  .slider-btn { display: none !important; }
+  
+  .section-title {
+    font-size: 1.8rem !important;
+    margin-bottom: 5px;
+  }
+
+  .section-subtitle {
+    font-size: 0.85rem !important;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+    padding: 0 15px !important;
+  }
+  
+  .best-sellers, .new-arrivals {
+    margin-bottom: 40px;
+  }
 }
 </style>

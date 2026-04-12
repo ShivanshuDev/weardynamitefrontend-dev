@@ -112,7 +112,7 @@ watch(() => props.productColor, (newColor) => {
 </script>
 
 <template>
-  <div ref="container" class="w-full h-full min-h-[500px] cursor-grab active:cursor-grabbing">
+  <div ref="container" class="w-full h-full min-h-[300px] lg:min-h-[500px] cursor-grab active:cursor-grabbing">
     <!-- Three.js Canvas will be injected here -->
   </div>
 </template>

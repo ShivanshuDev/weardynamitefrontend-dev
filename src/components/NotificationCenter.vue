@@ -169,6 +169,17 @@ const getIconForType = (type) => {
   border: 2px solid #fff;
 }
 
+.dot-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  border: 1px solid #fff;
+}
+
 .notification-dropdown {
   position: absolute;
   top: calc(100% + 15px);
@@ -396,5 +407,23 @@ const getIconForType = (type) => {
 .fade-slide-leave-to {
   opacity: 0;
   transform: translateY(10px) scale(0.95);
+}
+
+@media (max-width: 768px) {
+  .notification-dropdown {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: calc(100vw - 20px);
+    max-width: 380px;
+  }
+  
+  .fade-slide-enter-from,
+  .fade-slide-leave-to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px) scale(0.95) !important;
+  }
 }
 </style>

@@ -122,10 +122,10 @@ const checkout = () => {
 }
 
 .page-title {
-  font-size: 2.5rem;
+  font-size: clamp(1.8rem, 5vw, 2.5rem);
   margin-bottom: 40px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 2px solid #000;
 }
 
 .cart-layout {
@@ -368,32 +368,63 @@ const checkout = () => {
 }
 
 @media (max-width: 768px) {
+  .cart-view { padding: 30px 15px; }
+
   .cart-header {
     display: none;
   }
   
   .cart-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
-    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    padding: 24px 0;
+    border-bottom: 1px solid #eee;
   }
   
+  .item-details {
+    display: flex;
+    gap: 15px;
+  }
+
+  .item-img-link {
+    width: 80px;
+    height: 100px;
+    border-radius: 8px;
+  }
+
+  .item-name { font-size: 1rem; }
+
   .col-price, .col-quantity, .col-total {
     text-align: left;
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    font-size: 0.9rem;
+    padding-top: 5px;
   }
   
-  .col-price::before { content: "Price: "; font-weight: 600; }
-  .col-quantity::before { content: "Quantity: "; font-weight: 600; }
-  .col-total::before { content: "Total: "; font-weight: 600; }
+  .col-price::before { content: "Item Price"; color: #64748b; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
+  .col-quantity::before { content: "Quantity"; color: #64748b; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
+  .col-total::before { content: "Line Total"; color: #64748b; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
   
-  .item-img-link {
-    width: 80px;
-    height: 100px;
+  .item-total { font-size: 1rem; }
+
+  .remove-btn {
+    position: absolute;
+    top: 24px;
+    right: 0;
   }
+  
+  .cart-summary-box {
+    padding: 24px 20px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .item-img-link { width: 70px; height: 90px; }
+  .item-specs { font-size: 0.8rem; }
 }
 </style>

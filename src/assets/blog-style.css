@@ -31,11 +31,15 @@
 .blog-hero {
   border-bottom: 2px solid var(--blog-border);
   padding-bottom: 40px;
-  margin-bottom: 80px;
+  margin-bottom: 60px;
+}
+
+@media (max-width: 768px) {
+  .blog-hero { margin-bottom: 40px; }
 }
 
 .blog-hero h1 {
-  font-size: 4.5rem;
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
   font-weight: 900;
   font-style: italic;
   letter-spacing: -0.05em;
@@ -52,7 +56,7 @@
 }
 
 .blog-hero .subtitle {
-  font-size: 1.25rem;
+  font-size: clamp(0.9rem, 2vw, 1.25rem);
   color: var(--blog-text-muted);
   font-weight: 500;
   max-width: 42rem;

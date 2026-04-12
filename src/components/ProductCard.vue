@@ -9,10 +9,9 @@
       <div v-if="isOutOfStock" class="badge out-of-stock">Out of Stock</div>
       <div v-else-if="product.featured" class="badge featured">Best Seller</div>
       <div v-else-if="isNewArrival" class="badge new">New Arrival</div>
-      <div v-if="hasDiscount && !isOutOfStock" class="badge discount">-{{ discountPercent }}%</div>
 
       <button class="favorite-btn" 
-              @click.prevent="productStore.toggleFavorite(product.id)" 
+              @click.prevent="handleFavorite" 
               :class="{ 'is-active': productStore.isFavorite(product.id) }">
         <Heart :class="{ 'filled': productStore.isFavorite(product.id) }" :size="18" />
       </button>
@@ -53,11 +52,14 @@
 
 <script setup>
 import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { Heart } from 'lucide-vue-next'
 import { useProductStore } from '../stores/productStore'
+import { useAuthStore } from '../stores/authStore'
 
 const productStore = useProductStore()
+const authStore = useAuthStore()
+const router = useRouter()
 
 const props = defineProps({
   product: {
@@ -88,6 +90,15 @@ const discountPercent = computed(() => {
   if (!hasDiscount.value) return 0
   return Math.round(((props.product.mrp - props.product.price) / props.product.mrp) * 100)
 })
+
+const handleFavorite = () => {
+  if (!authStore.isLoggedIn) {
+    authStore.setPendingAction('TOGGLE_FAVORITE', { productId: props.product.id }, router.currentRoute.value.fullPath);
+    router.push('/login');
+    return;
+  }
+  productStore.toggleFavorite(props.product.id);
+}
 </script>
 
 <style scoped>
@@ -95,7 +106,8 @@ const discountPercent = computed(() => {
   position: relative;
   transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
   background: white;
-  max-width: 250px;
+  width: 100%;
+  min-width: 0; /* Ensures content doesn't push width */
 }
 
 .product-image {
@@ -127,7 +139,7 @@ const discountPercent = computed(() => {
 .badge {
   position: absolute;
   top: 8px;
-  left: 8px;
+  right: 8px;
   padding: 4px 8px;
   font-size: 9px;
   font-weight: 900;
@@ -141,8 +153,8 @@ const discountPercent = computed(() => {
 .featured { background: #dcfce7; color: #166534; }
 .new { background: #fef9c3; color: #854d0e; }
 .discount { 
-  left: auto; 
-  right: 8px; 
+  right: auto; 
+  left: 8px; 
   background: #3b82f6; 
   color: #fff; 
 }
@@ -151,7 +163,7 @@ const discountPercent = computed(() => {
 .favorite-btn {
   position: absolute;
   top: 8px;
-  right: 8px;
+  left: 8px;
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -173,6 +185,10 @@ const discountPercent = computed(() => {
 
 .favorite-btn.is-active {
   color: #ef4444;
+}
+
+.favorite-btn .filled {
+  fill: #ef4444;
 }
 
 /* Hover Overlay */

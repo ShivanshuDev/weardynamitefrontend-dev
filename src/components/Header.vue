@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Search, ShoppingCart, User, Menu, X, Heart } from 'lucide-vue-next'
+import { Search, ShoppingCart, User, Menu, X, Heart, LogOut } from 'lucide-vue-next'
 import { useProductStore } from '../stores/productStore'
 import { useAuthStore } from '../stores/authStore'
 
@@ -25,6 +25,22 @@ const navLinks = [
   { name: 'About Us', path: '/about' },
   { name: 'Contact Us', path: '/contact' }
 ]
+
+const accountLinks = [
+  { name: 'My Profile', path: '/profile?tab=profile' },
+  { name: 'Order History', path: '/profile?tab=orders' },
+  { name: 'Saved Addresses', path: '/profile?tab=addresses' }
+]
+
+const handleMobileNavClick = () => {
+  toggleMenu()
+  window.scrollTo({ top: 0, behavior: 'instant' })
+}
+
+const logout = () => {
+  authStore.logout()
+  handleMobileNavClick()
+}
 </script>
 
 <template>
@@ -79,7 +95,7 @@ const navLinks = [
           <User v-else :size="20" />
         </RouterLink>
         <NotificationCenter v-if="authStore.isLoggedIn" />
-        <RouterLink to="/favorites" class="action-btn cart-btn" title="Favorites">
+        <RouterLink v-if="authStore.isLoggedIn" to="/favorites" class="action-btn cart-btn" title="Favorites">
           <Heart :size="20" />
           <span class="cart-count" v-if="productStore.favorites.length > 0">{{ productStore.favorites.length }}</span>
         </RouterLink>
@@ -89,30 +105,54 @@ const navLinks = [
         </RouterLink>
       </div>
 
-      <button class="mobile-menu-btn" @click="toggleMenu">
-        <Menu v-if="!isMenuOpen" :size="24" />
-        <X v-else :size="24" />
-      </button>
+      <div class="mobile-right-side mobile-only-flex">
+        <div class="mobile-header-actions">
+          <NotificationCenter v-if="authStore.isLoggedIn" />
+          <RouterLink v-if="authStore.isLoggedIn" to="/favorites" class="action-btn cart-btn" title="Favorites">
+            <Heart :size="20" />
+            <span class="cart-count" v-if="productStore.favorites.length > 0">{{ productStore.favorites.length }}</span>
+          </RouterLink>
+        </div>
+
+        <button class="mobile-menu-btn" @click="toggleMenu" aria-label="Toggle Menu">
+          <Menu v-if="!isMenuOpen" :size="24" />
+          <X v-else :size="24" />
+        </button>
+      </div>
     </div>
 
-    <!-- Mobile Navigation Overlay -->
+    <!-- Mobile Search Bar (Meesho style) -->
+    <div class="mobile-search-wrapper mobile-only-flex">
+      <div class="search-input-container">
+        <Search :size="18" class="search-icon" />
+        <input type="text" placeholder="Search for products, brands and more" class="mobile-search-input" />
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Overlay (Account-Only as requested) -->
     <div class="mobile-nav" :class="{ 'open': isMenuOpen }">
+      <div class="mobile-nav-header">
+        <h3>My Account</h3>
+        <p v-if="authStore.isLoggedIn">{{ authStore.user.email }}</p>
+      </div>
+      
       <ul class="mobile-nav-links">
-        <li v-for="link in navLinks" :key="link.name">
-          <RouterLink :to="link.path" @click="toggleMenu">{{ link.name }}</RouterLink>
-          <!-- Simplified mobile accordion can be added here if needed, keeping it flat for now for speed -->
+        <li v-if="!authStore.isLoggedIn">
+           <RouterLink to="/login" @click="handleMobileNavClick">Login / Register</RouterLink>
         </li>
+        <template v-else>
+          <li v-for="link in accountLinks" :key="link.name">
+            <RouterLink :to="link.path" @click="handleMobileNavClick">{{ link.name }}</RouterLink>
+          </li>
+        </template>
       </ul>
+      
       <div class="mobile-actions">
-        <button class="action-btn"><Search :size="20" /> Search</button>
-        <RouterLink :to="authStore.isLoggedIn ? '/profile' : '/login'" class="action-btn" @click="toggleMenu"><User :size="20" /> Profile</RouterLink>
-        <RouterLink to="/favorites" class="action-btn" @click="toggleMenu">
-          <Heart :size="20" /> Favorites
-          <span v-if="productStore.favorites.length > 0">({{ productStore.favorites.length }})</span>
+        <RouterLink v-if="authStore.isLoggedIn" to="/" @click="logout" class="action-btn logout-text">
+          <LogOut :size="20" /> Log Out
         </RouterLink>
-        <RouterLink to="/cart" class="action-btn" @click="toggleMenu">
-          <ShoppingCart :size="20" /> Cart
-          <span v-if="productStore.cartCount > 0">({{ productStore.cartCount }})</span>
+        <RouterLink to="/shop" @click="handleMobileNavClick" class="action-btn">
+          <Search :size="20" /> Browse Shop
         </RouterLink>
       </div>
     </div>
@@ -123,7 +163,7 @@ const navLinks = [
 .header {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
   background-color: #fff;
   border-bottom: 1px solid #eee;
 }
@@ -135,12 +175,28 @@ const navLinks = [
   height: 80px;
 }
 
+@media (max-width: 768px) {
+  .header-container {
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
 .logo {
   font-family: var(--font-heading);
   font-size: 1.5rem;
   font-weight: 900;
   letter-spacing: -0.5px;
   color: #000;
+  transition: font-size 0.3s;
+}
+
+@media (max-width: 768px) {
+  .logo {
+    font-size: 1.2rem;
+  }
 }
 
 .desktop-nav {
@@ -333,6 +389,17 @@ const navLinks = [
   justify-content: center;
 }
 
+.dot-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  border: 1px solid #fff;
+}
+
 .header-avatar-container {
   width: 28px;
   height: 28px;
@@ -351,11 +418,21 @@ const navLinks = [
 }
 
 .mobile-menu-btn {
-  display: none;
+  display: block;
   background: none;
   border: none;
   cursor: pointer;
-  justify-self: end;
+}
+
+.mobile-right-side {
+  align-items: center;
+  gap: 12px;
+}
+
+.mobile-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .mobile-nav {
@@ -378,10 +455,10 @@ const navLinks = [
   .mobile-nav {
     display: block;
     position: fixed;
-    top: 80px;
+    top: 60px;
     left: 0;
     width: 100%;
-    height: calc(100vh - 80px);
+    height: calc(100vh - 60px);
     background-color: #fff;
     padding: 30px 20px;
     transform: translateX(100%);
@@ -425,6 +502,78 @@ const navLinks = [
     gap: 15px;
     text-transform: uppercase;
     letter-spacing: 1px;
+  }
+
+  .mobile-nav-header {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .mobile-nav-header h3 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #000;
+  }
+
+  .mobile-nav-header p {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin-top: 5px;
+  }
+
+  .logout-text {
+    color: #ef4444 !important;
+  }
+}
+
+/* Mobile Search Bar Styles */
+.mobile-search-wrapper {
+  padding: 10px 15px;
+  background: white;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.search-input-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.mobile-search-input {
+  width: 100%;
+  height: 40px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0 15px 0 40px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  transition: all 0.2s ease;
+}
+
+.mobile-search-input:focus {
+  outline: none;
+  background: white;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.mobile-only-flex {
+  display: none !important;
+}
+
+@media (max-width: 992px) {
+  .mobile-only-flex {
+    display: flex !important;
   }
 }
 </style>

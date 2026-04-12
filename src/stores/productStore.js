@@ -30,9 +30,7 @@ export const useProductStore = defineStore('products', {
     favorites: JSON.parse(localStorage.getItem('favorites')) || [],
     currency: 'INR',
     currencyRates: {
-      'INR': { symbol: '₹', rate: 1 },
-      'USD': { symbol: '$', rate: 0.012 }, // 1/83.5
-      'EUR': { symbol: '€', rate: 0.011 }
+      'INR': { symbol: '₹', rate: 1 }
     },
     // Admin Managed Content (CMS) - Populated from fetchCms
     siteContent: {
@@ -80,10 +78,9 @@ export const useProductStore = defineStore('products', {
   }),
   getters: {
     formatPrice: (state) => (price) => {
-      const { symbol, rate } = state.currencyRates[state.currency]
       const numPrice = typeof price === 'number' ? price : parseFloat(price)
-      if (isNaN(numPrice)) return `${symbol}0.00`
-      return `${symbol}${(numPrice * rate).toFixed(2)}`
+      if (isNaN(numPrice)) return `₹0.00`
+      return `₹${numPrice.toFixed(2)}`
     },
     
     isFirstTimeUser: () => {
@@ -391,11 +388,6 @@ export const useProductStore = defineStore('products', {
       this.isDirectCheckout = false
       localStorage.setItem('checkoutItems', JSON.stringify(this.checkoutItems))
       localStorage.setItem('isDirectCheckout', JSON.stringify(this.isDirectCheckout))
-    },
-    setCurrency(code) {
-      if (this.currencyRates[code]) {
-        this.currency = code
-      }
     },
     toggleFavorite(productId) {
 

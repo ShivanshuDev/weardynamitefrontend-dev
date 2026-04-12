@@ -35,14 +35,12 @@ const submitForm = async () => {
     if (isLogin.value) {
       if (email.value && password.value) {
         await authStore.login(email.value, password.value)
-        const redirect = route.query.redirect || '/profile'
-        router.push(redirect)
+        await handlePostLogin()
       }
     } else {
       if (name.value && email.value && password.value) {
         await authStore.register(name.value, email.value, password.value)
-        const redirect = route.query.redirect || '/profile'
-        router.push(redirect)
+        await handlePostLogin()
       }
     }
   } catch (err) {
@@ -58,13 +56,29 @@ const handleGoogleLogin = async () => {
   isLoading.value = true
   try {
     await authStore.loginWithGoogle()
-    const redirect = route.query.redirect || '/profile'
-    router.push(redirect)
+    await handlePostLogin()
   } catch (err) {
     error.value = 'Google sign-in failed. Please try again.'
     console.error('Google auth error:', err)
   } finally {
     isLoading.value = false
+  }
+}
+
+const handlePostLogin = async () => {
+  const result = await authStore.executePendingAction();
+  if (result) {
+    // If it was a 'BUY_NOW' action, direct to checkout is preferred
+    if (result.type === 'BUY_NOW') {
+      router.push('/checkout');
+    } else if (result.redirect) {
+      router.push(result.redirect);
+    } else {
+      router.push('/profile');
+    }
+  } else {
+    const redirect = route.query.redirect || '/profile';
+    router.push(redirect);
   }
 }
 </script>
@@ -149,6 +163,12 @@ const handleGoogleLogin = async () => {
   min-height: 70vh;
   padding: 60px 20px;
   background-color: #fafafa;
+}
+
+@media (max-width: 576px) {
+  .auth-view { padding: 40px 15px; }
+  .auth-box { padding: 30px 20px; }
+  .auth-header h1 { font-size: 1.75rem; }
 }
 
 .auth-box {

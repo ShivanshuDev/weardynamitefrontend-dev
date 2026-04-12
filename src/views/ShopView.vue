@@ -104,12 +104,12 @@ const clearAll = () => {
           <Filter :size="16" style="margin-right: 8px;" /> Filters
         </button>
         <div class="shop-meta">
-          <span>Showing {{ productStore.filteredProducts.length }} results</span>
+          <span class="results-count">Showing {{ productStore.filteredProducts.length }} results</span>
           <select class="sort-select" v-model="productStore.sortBy">
             <option value="default">Default sorting</option>
-            <option value="price-asc">Sort by price: low to high</option>
-            <option value="price-desc">Sort by price: high to low</option>
-            <option value="latest">Sort by latest</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+            <option value="latest">Sort by Latest</option>
           </select>
         </div>
       </div>
@@ -265,13 +265,14 @@ const clearAll = () => {
 
 .page-title {
   margin: 0;
-  font-size: 2.5rem;
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
 }
 
 .title-with-badge {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
 .bulk-badge-btn {
@@ -479,75 +480,107 @@ const clearAll = () => {
 }
 
 @media (max-width: 768px) {
+  .shop-view { padding: 15px 15px; }
+  
   .shop-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 20px;
   }
-  
-  .shop-controls {
-    width: 100%;
-    justify-content: space-between;
+
+  .shop-layout {
+    display: block; /* Stack main and sidebar */
   }
-  
+
+  .shop-controls {
+    display: flex;
+    width: 100%;
+    gap: 12px;
+    align-items: stretch;
+  }
+
   .mobile-filter-btn {
     display: flex;
+    flex: 1;
+    height: 44px;
+    justify-content: center;
     align-items: center;
-    padding: 8px 16px;
+    margin-bottom: 0;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: #000;
+    color: #fff;
+    border-radius: 8px;
   }
-  
-  .shop-layout {
-    grid-template-columns: 1fr;
-    display: block; /* Disable grid */
+
+  .shop-meta {
+    flex: 1;
+    gap: 0;
   }
-  
+
+  .sort-select {
+    width: 100%;
+    height: 44px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
   .sidebar {
     position: fixed;
     top: 0;
-    left: -300px;
-    width: 280px;
+    left: -320px;
+    width: 300px;
     height: 100vh;
     background: #fff;
     z-index: 2000;
-    padding: 20px;
+    padding: 30px 20px;
     overflow-y: auto;
-    transition: left 0.3s ease;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 10px 0 30px rgba(0,0,0,0.1);
   }
-  
-  .sidebar.sidebar-open {
-    left: 0;
+
+  .sidebar.sidebar-open { 
+    left: 0; 
   }
-  
-  .mobile-only {
+
+  .sidebar-header.mobile-only {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
+    margin-bottom: 30px;
     border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
   }
-  
-  .close-btn {
-    padding: 5px;
-  }
-  
+
   .sidebar-overlay {
     display: block;
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0;
     background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(2px);
     z-index: 1500;
   }
-  
-  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+
+  .grid-5 { 
+    grid-template-columns: repeat(2, 1fr) !important; 
+    gap: 12px !important; 
+    padding: 0;
+  }
 }
 
 @media (max-width: 480px) {
-  .grid-3 { grid-template-columns: 1fr; }
-  .shop-meta { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .results-count { display: none; }
+  .shop-meta { justify-content: flex-end; }
+  .grid-5 { 
+    grid-template-columns: repeat(2, 1fr) !important; 
+    gap: 10px !important;
+  }
 }
 </style>

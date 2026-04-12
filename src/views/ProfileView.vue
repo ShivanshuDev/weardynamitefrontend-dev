@@ -13,7 +13,12 @@ import {
   TrendingUp,
   Building2,
   Mail,
-  Phone
+  Phone,
+  User,
+  MapPin,
+  LogOut,
+  ChevronRight,
+  ArrowLeft
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -22,14 +27,24 @@ const authStore = useAuthStore()
 const productStore = useProductStore()
 const uiStore = useUiStore()
 
-// Sync activeTab with route query
 const activeTab = ref('profile') // profile, addresses, orders, settings
+const showMobileMenu = ref(true)
+
+const isMobile = ref(window.innerWidth <= 1024)
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 1024
+}
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
 
 const syncActiveTab = () => {
   if (route.query.tab) {
     activeTab.value = route.query.tab
+    showMobileMenu.value = false
   } else if (route.path.includes('/orders')) {
     activeTab.value = 'orders'
+    showMobileMenu.value = false
   }
 }
 
@@ -113,6 +128,15 @@ const startEditingPersonal = () => {
   isEditingPersonal.value = true
 }
 
+const selectMobileTab = (tab) => {
+  activeTab.value = tab
+  showMobileMenu.value = false
+}
+
+const goBackToMenu = () => {
+  showMobileMenu.value = true
+}
+
 const savePersonal = async () => {
   const regex10 = /^\d{10}$/
   if (personalForm.value.phone && !regex10.test(personalForm.value.phone.replace(/\s+/g, '').replace(/^\+91/, ''))) {
@@ -133,7 +157,8 @@ const savePersonal = async () => {
 
 <template>
   <div class="profile-view container" v-if="authStore.isLoggedIn && authStore.user">
-    <div class="profile-sidebar">
+    <!-- Desktop Sidebar -->
+    <div class="profile-sidebar desktop-only">
       <div class="user-info">
         <div class="avatar-container">
           <img v-if="authStore.user?.photoURL" :src="authStore.user.photoURL" class="avatar-img" />
@@ -144,14 +169,70 @@ const savePersonal = async () => {
       </div>
       <nav class="profile-nav">
         <button :class="{ active: activeTab === 'profile' }" @click="activeTab = 'profile'">My Profile</button>
-        <button :class="{ active: activeTab === 'settings' }" @click="activeTab = 'settings'">Preferences (Currency)</button>
+        <button :class="{ active: activeTab === 'addresses' }" @click="activeTab = 'addresses'">Manage Addresses</button>
         <button :class="{ active: activeTab === 'addresses' }" @click="activeTab = 'addresses'">Manage Addresses</button>
         <button :class="{ active: activeTab === 'orders' }" @click="activeTab = 'orders'">Order History</button>
         <button class="logout-btn" @click="logout">Log Out</button>
       </nav>
     </div>
 
-    <div class="profile-content">
+    <!-- Mobile Header & Hub -->
+    <div v-if="showMobileMenu" class="mobile-hub-container mobile-only">
+      <div class="mobile-profile-header">
+         <div class="avatar-small">
+           <img v-if="authStore.user?.photoURL" :src="authStore.user.photoURL" />
+           <span v-else>{{ (authStore.user?.name || 'U').charAt(0).toUpperCase() }}</span>
+         </div>
+         <div class="header-text">
+            <h2>{{ authStore.user.name }}</h2>
+            <p>{{ authStore.user.email }}</p>
+         </div>
+      </div>
+      
+      <div class="mobile-menu-list">
+        <div class="mobile-menu-item" @click="selectMobileTab('orders')">
+           <div class="mmi-content">
+             <div class="mmi-icon"><Package :size="20" /></div>
+             <span>My Orders & Inquiries</span>
+           </div>
+           <ChevronRight class="mmi-chevron" :size="18" />
+        </div>
+        <div class="mobile-menu-item" @click="selectMobileTab('profile')">
+           <div class="mmi-content">
+             <div class="mmi-icon"><User :size="20" /></div>
+             <span>Profile Information</span>
+           </div>
+           <ChevronRight class="mmi-chevron" :size="18" />
+        </div>
+        <div class="mobile-menu-item" @click="selectMobileTab('addresses')">
+           <div class="mmi-content">
+             <div class="mmi-icon"><MapPin :size="20" /></div>
+             <span>Saved Addresses</span>
+           </div>
+           <ChevronRight class="mmi-chevron" :size="18" />
+        </div>
+        <div class="mobile-menu-item logout" @click="logout">
+           <div class="mmi-content">
+             <div class="mmi-icon"><LogOut :size="20" /></div>
+             <span style="color: #ef4444">Log Out</span>
+           </div>
+           <ChevronRight class="mmi-chevron" :size="18" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Flow (Switching between tabs) -->
+    <div v-if="!showMobileMenu || !isMobile" class="profile-content">
+      <!-- Mobile Section Header -->
+      <div class="mobile-section-header mobile-only" v-if="!showMobileMenu">
+        <button @click="goBackToMenu" class="back-btn-pill">
+           <ArrowLeft :size="18" />
+        </button>
+        <h2>{{ 
+          activeTab === 'profile' ? 'My Profile' :
+          activeTab === 'orders' ? 'Order History' : 'Addresses'
+        }}</h2>
+      </div>
       <!-- Profile Details -->
       <div v-if="activeTab === 'profile'" class="tab-pane">
         <div class="pane-header">
@@ -238,27 +319,6 @@ const savePersonal = async () => {
         </div>
       </div>
 
-      <!-- Currency Preferences -->
-      <div v-if="activeTab === 'settings'" class="tab-pane">
-        <h2>Global Preferences</h2>
-        <div class="info-card">
-          <h3>Display Currency</h3>
-          <p class="hint">Select the currency you would like to see prices displayed in across the store.</p>
-          
-          <div class="currency-selector">
-            <div 
-              v-for="(data, code) in productStore.currencyRates" 
-              :key="code"
-              class="currency-card"
-              :class="{ selected: productStore.currency === code }"
-              @click="productStore.setCurrency(code)"
-            >
-              <div class="symbol">{{ data.symbol }}</div>
-              <div class="code">{{ code }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- Manage Addresses -->
       <div v-if="activeTab === 'addresses'" class="tab-pane">
@@ -407,15 +467,29 @@ const savePersonal = async () => {
 <style scoped>
 .profile-view {
   display: grid;
-  grid-template-columns: 250px 1fr;
+  grid-template-columns: 280px 1fr;
   gap: 40px;
   padding: 60px 20px;
   min-height: 70vh;
 }
 
+@media (max-width: 992px) {
+  .profile-view {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    padding: 30px 15px;
+  }
+}
+
 .profile-sidebar {
-  border-right: 1px solid #eee;
-  padding-right: 30px;
+  padding-right: 0;
+}
+
+@media (min-width: 993px) {
+  .profile-sidebar {
+    border-right: 1px solid #eee;
+    padding-right: 30px;
+  }
 }
 
 .user-info {
@@ -470,22 +544,85 @@ const savePersonal = async () => {
   gap: 10px;
 }
 
-.profile-nav button {
-  background: none;
-  border: none;
-  text-align: left;
-  padding: 12px 15px;
-  font-size: 1rem;
-  cursor: pointer;
-  border-radius: 4px;
-  color: #555;
-  transition: all 0.2s;
+@media (max-width: 992px) {
+  .profile-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 15px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .profile-nav::-webkit-scrollbar { display: none; }
+  .profile-nav button {
+    white-space: nowrap;
+    border: 1px solid #eee;
+  }
+  .logout-btn { margin-top: 0 !important; }
 }
 
 .profile-nav button:hover, .profile-nav button.active {
   background: #f5f5f5;
   color: #000;
   font-weight: 600;
+}
+
+/* Mobile Hub Styling */
+.mobile-hub-container {
+  padding: 10px 5px;
+}
+
+.mobile-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 20px;
+  margin-bottom: 25px;
+}
+
+.avatar-small {
+  width: 50px;
+  height: 50px;
+  background: #000;
+  color: #fff;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.2rem;
+  overflow: hidden;
+}
+
+.avatar-small img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.header-text h2 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+
+.header-text p {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.mobile-menu-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-menu-item.logout {
+  margin-top: 20px;
+  border-top: 1px solid #f1f5f9;
 }
 
 .logout-btn {
@@ -501,25 +638,63 @@ const savePersonal = async () => {
   padding-bottom: 15px;
 }
 
+@media (max-width: 768px) {
+  .tab-pane h2 {
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+  }
+}
+
 .info-card {
   background: #fff;
   border: 1px solid #eee;
   padding: 30px;
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: 0 5px 15px rgba(0,0,0,0.02);
   margin-bottom: 30px;
 }
 
+@media (max-width: 768px) {
+  .info-card {
+    padding: 20px;
+  }
+}
+
 .info-row {
   display: flex;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   font-size: 1.05rem;
+  border-bottom: 1px solid #f8fafc;
+  padding-bottom: 12px;
+}
+
+@media (max-width: 768px) {
+  .info-row {
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 15px;
+  }
 }
 
 .info-row .label {
   width: 150px;
-  color: #666;
-  font-weight: 600;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 768px) {
+  .info-row .label {
+    width: 100%;
+    font-size: 0.75rem;
+  }
+  .info-row .value {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 0.95rem;
+  }
 }
 
 .currency-selector {
@@ -565,6 +740,15 @@ const savePersonal = async () => {
   margin-bottom: 30px;
   border-bottom: 1px solid #eee;
   padding-bottom: 15px;
+  gap: 15px;
+}
+
+@media (max-width: 768px) {
+  .pane-header .btn {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
 }
 
 .pane-header h2 {
@@ -617,8 +801,17 @@ const savePersonal = async () => {
 
 .address-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 25px;
+}
+
+@media (max-width: 768px) {
+  .address-grid {
+    gap: 15px;
+  }
+  .address-card {
+    padding: 20px;
+  }
 }
 
 .address-card {
@@ -708,12 +901,18 @@ const savePersonal = async () => {
 }
 
 .record-header {
-  padding: 15px 25px;
+  padding: 12px 20px;
   background: #fafafb;
   border-bottom: 1px solid #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+@media (max-width: 768px) {
+  .record-header {
+    padding: 10px 15px;
+  }
 }
 
 .record-badge {
@@ -899,15 +1098,32 @@ const savePersonal = async () => {
   .record-body {
     flex-direction: column;
     align-items: flex-start;
+    padding: 15px;
+    gap: 15px;
   }
   .record-meta-box {
     width: 100%;
     justify-content: space-between;
-    padding-top: 20px;
+    padding-top: 15px;
     border-top: 1px solid #f1f5f9;
+    gap: 10px;
   }
-  .meta-item {
-    align-items: flex-start;
+  .record-main {
+    gap: 15px;
+  }
+  .record-img {
+    width: 50px;
+    height: 50px;
+  }
+  .record-details .record-id {
+    font-size: 14px;
+  }
+  .meta-value {
+    font-size: 13px;
+  }
+  .record-action-btn {
+    padding: 8px 15px;
+    font-size: 11px;
   }
 }
 </style>

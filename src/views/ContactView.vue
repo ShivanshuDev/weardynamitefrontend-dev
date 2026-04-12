@@ -209,12 +209,17 @@ const handleSubmit = async () => {
 }
 
 @media (max-width: 992px) {
+  .contact-view { padding: 30px 15px; }
+  .contact-header { margin-bottom: 30px; }
+  .page-title { font-size: clamp(2rem, 8vw, 2.5rem); }
   .contact-content {
     grid-template-columns: 1fr;
+    gap: 40px;
   }
+  .contact-form { padding: 30px 20px; }
   
   .contact-map iframe {
-    min-height: 400px;
+    min-height: 350px;
   }
 }
 </style>

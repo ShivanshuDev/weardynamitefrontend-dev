@@ -22,18 +22,22 @@ onMounted(() => {
     >
       <div class="hero-overlay"></div>
       <div class="hero-content container">
-        <h1 :style="{ 
-          color: productStore.siteContent.process?.hero?.title?.color,
-          fontSize: (productStore.siteContent.process?.hero?.title?.size || 64) + 'px',
-          fontWeight: productStore.siteContent.process?.hero?.title?.bold ? '900' : '400',
-          fontStyle: productStore.siteContent.process?.hero?.title?.italic ? 'italic' : 'normal'
-        }">
+        <h1 
+          class="hero-title"
+          :style="{ 
+            color: productStore.siteContent.process?.hero?.title?.color,
+            fontWeight: productStore.siteContent.process?.hero?.title?.bold ? '900' : '400',
+            fontStyle: productStore.siteContent.process?.hero?.title?.italic ? 'italic' : 'normal'
+          }"
+        >
           {{ productStore.siteContent.process?.hero?.title?.text || 'Our Process' }}
         </h1>
-        <p :style="{ 
-          color: productStore.siteContent.process?.hero?.subtitle?.color,
-          fontSize: (productStore.siteContent.process?.hero?.subtitle?.size || 20) + 'px'
-        }">
+        <p 
+          class="hero-subtitle"
+          :style="{ 
+            color: productStore.siteContent.process?.hero?.subtitle?.color
+          }"
+        >
           {{ productStore.siteContent.process?.hero?.subtitle?.text || 'The journey of craftsmanship.' }}
         </p>
       </div>
@@ -55,12 +59,14 @@ onMounted(() => {
             </div>
           </div>
           <div class="step-content">
-            <h3 :style="{ 
-              color: step.title?.color, 
-              fontSize: (step.title?.size || 32) + 'px',
-              fontWeight: step.title?.bold ? '900' : '400',
-              fontStyle: step.title?.italic ? 'italic' : 'normal'
-            }">
+            <h3 
+              class="step-title"
+              :style="{ 
+                color: step.title?.color, 
+                fontWeight: step.title?.bold ? '900' : '400',
+                fontStyle: step.title?.italic ? 'italic' : 'normal'
+              }"
+            >
               {{ step.title?.text || step.title }}
             </h3>
             <p :style="{ color: step.have?.color, fontSize: (step.have?.size || 14) + 'px' }">
@@ -74,12 +80,14 @@ onMounted(() => {
         
         <template v-else>
           <div class="step-content">
-            <h3 :style="{ 
-              color: step.title?.color, 
-              fontSize: (step.title?.size || 32) + 'px',
-              fontWeight: step.title?.bold ? '900' : '400',
-              fontStyle: step.title?.italic ? 'italic' : 'normal'
-            }">
+            <h3 
+              class="step-title"
+              :style="{ 
+                color: step.title?.color, 
+                fontWeight: step.title?.bold ? '900' : '400',
+                fontStyle: step.title?.italic ? 'italic' : 'normal'
+              }"
+            >
               {{ step.title?.text || step.title }}
             </h3>
             <p :style="{ color: step.have?.color, fontSize: (step.have?.size || 14) + 'px' }">
@@ -103,17 +111,21 @@ onMounted(() => {
     <section class="process-cta container">
       <div class="cta-box">
         <Info :size="48" :color="productStore.siteContent.process?.cta?.title?.color || '#d97706'" />
-        <h2 :style="{ 
-          color: productStore.siteContent.process?.cta?.title?.color,
-          fontSize: (productStore.siteContent.process?.cta?.title?.size || 42) + 'px',
-          fontWeight: productStore.siteContent.process?.cta?.title?.bold ? '900' : '400'
-        }">
+        <h2 
+          class="cta-title"
+          :style="{ 
+            color: productStore.siteContent.process?.cta?.title?.color,
+            fontWeight: productStore.siteContent.process?.cta?.title?.bold ? '900' : '400'
+          }"
+        >
           {{ productStore.siteContent.process?.cta?.title?.text || 'Experience The Difference' }}
         </h2>
-        <p :style="{ 
-          color: productStore.siteContent.process?.cta?.subtitle?.color,
-          fontSize: (productStore.siteContent.process?.cta?.subtitle?.size || 18) + 'px'
-        }">
+        <p 
+          class="cta-subtitle"
+          :style="{ 
+            color: productStore.siteContent.process?.cta?.subtitle?.color
+          }"
+        >
           {{ productStore.siteContent.process?.cta?.subtitle?.text || "Now that you know how it's made, feel it for yourself." }}
         </p>
         <router-link to="/shop" class="btn primary-btn btn-large shadow-2xl">Shop The Collection</router-link>
@@ -252,17 +264,28 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .hero-content h1 { font-size: 3rem; }
+  .process-hero { height: 300px; padding: 0 15px; }
+  .hero-title { font-size: 2.5rem !important; }
+  .hero-subtitle { font-size: 1.1rem !important; }
   
+  .timeline-section { padding: 50px 15px; }
   .timeline-step, .timeline-step.alt {
     flex-direction: column;
     text-align: left;
-    gap: 30px;
+    gap: 20px;
+    margin-bottom: 50px;
   }
   
+  .step-title { font-size: 1.75rem !important; }
+  
   .icon-circle {
-    width: 70px;
-    height: 70px;
+    width: 60px;
+    height: 60px;
   }
+  .icon-circle svg { width: 28px; height: 28px; }
+
+  .cta-box { padding: 50px 20px; }
+  .cta-title { font-size: 2rem !important; }
+  .cta-subtitle { font-size: 1rem !important; }
 }
 </style>

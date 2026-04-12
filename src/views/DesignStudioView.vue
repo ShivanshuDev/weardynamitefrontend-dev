@@ -56,21 +56,22 @@ const addToCart = () => {
         <p class="text-xs text-gray-400 font-medium uppercase tracking-widest hidden md:block">3D Professional Customizer v4.0</p>
       </div>
       
-      <div class="flex items-center gap-6">
+      <div class="flex items-center gap-3 sm:gap-6">
         <div class="hidden lg:flex items-center gap-2 bg-gray-50 p-1 rounded-full border border-gray-100">
           <button class="p-2 rounded-full bg-white shadow-sm"><Monitor :size="16"/></button>
           <button class="p-2 rounded-full text-gray-400 hover:text-gray-600"><Smartphone :size="16"/></button>
         </div>
-        <button @click="addToCart" class="bg-black text-white px-8 py-3 rounded-full font-bold text-sm tracking-wide hover:bg-red-600 transition-all flex items-center gap-2 shadow-xl shadow-gray-200">
+        <button @click="addToCart" class="bg-black text-white px-4 sm:px-8 py-2 sm:py-3 rounded-full font-bold text-xs sm:text-sm tracking-wide hover:bg-red-600 transition-all flex items-center gap-2 shadow-xl shadow-gray-200">
           <ShoppingBag :size="18"/>
-          Add to Cart — $29.99
+          <span class="hidden sm:inline">Add to Cart — $29.99</span>
+          <span class="sm:hidden">$29.99</span>
         </button>
       </div>
     </header>
 
-    <main class="flex-1 flex overflow-hidden relative">
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
       <!-- 3D Viewport -->
-      <div class="flex-1 bg-gray-50 relative group">
+      <div class="flex-1 min-h-[40vh] lg:min-h-0 bg-gray-50 relative group">
         <ThreeVisualizer 
           :productColor="productColor" 
           :modelUrl="currentProduct.model"
@@ -98,7 +99,7 @@ const addToCart = () => {
       </div>
 
       <!-- Sidebar -->
-      <aside class="w-[450px] border-l border-gray-100 bg-white flex flex-col z-40">
+      <aside class="w-full lg:w-[450px] h-1/2 lg:h-full border-t lg:border-t-0 lg:border-l border-gray-100 bg-white flex flex-col z-40">
         <!-- Tabs -->
         <div class="flex border-b border-gray-50">
           <button 
@@ -114,7 +115,7 @@ const addToCart = () => {
         </div>
 
         <!-- Scrollable Content -->
-        <div class="flex-1 overflow-y-auto custom-scrollbar p-10">
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10">
           
           <!-- Product Selection Section -->
           <div v-if="activeTab === 'product'" class="space-y-12 animate-in fade-in slide-in-from-right-4 duration-500">

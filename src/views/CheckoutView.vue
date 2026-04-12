@@ -417,6 +417,12 @@ const placeOrder = async () => {
   min-height: 80vh;
 }
 
+@media (max-width: 768px) {
+  .checkout-view {
+    padding: 30px 15px;
+  }
+}
+
 .page-title {
   font-family: var(--font-heading);
   font-size: 2.5rem;
@@ -619,6 +625,13 @@ const placeOrder = async () => {
   gap: 20px;
 }
 
+@media (max-width: 576px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+}
+
 .form-group.full {
   grid-column: span 2;
 }
@@ -681,6 +694,8 @@ const placeOrder = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .default-check {
@@ -939,9 +954,19 @@ const placeOrder = async () => {
 @media (max-width: 992px) {
   .checkout-layout {
     grid-template-columns: 1fr;
+    gap: 40px;
   }
   .order-summary-sidebar {
     position: static;
+    padding: 25px;
   }
+}
+
+@media (max-width: 576px) {
+  .checkout-step h2 { font-size: 1.25rem; }
+  .address-card, .payment-card { padding: 15px; gap: 12px; }
+  .address-details strong, .payment-details strong { font-size: 1rem; }
+  .address-details p, .payment-details p { font-size: 0.85rem; }
+  .save-addr-btn { width: 100%; }
 }
 </style>

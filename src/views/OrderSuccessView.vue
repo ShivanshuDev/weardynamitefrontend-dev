@@ -244,6 +244,9 @@ const handleCancel = (item) => {
   padding: 60px 20px 100px;
   color: #0f172a;
 }
+@media (max-width: 768px) {
+  .success-page-wrapper { padding: 30px 15px 60px; }
+}
 .container {
   max-width: 1100px;
   margin: 0 auto;
@@ -298,7 +301,7 @@ const handleCancel = (item) => {
   box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
 }
 .hero-title {
-  font-size: 36px;
+  font-size: clamp(1.8rem, 8vw, 2.25rem);
   font-weight: 900;
   margin-bottom: 12px;
   letter-spacing: -0.5px;
@@ -675,20 +678,26 @@ const handleCancel = (item) => {
 
 @media(max-width: 768px) {
   .timeline {
-    flex-wrap: wrap;
-    gap: 30px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
   }
   .timeline-step {
-    flex: 0 0 calc(50% - 15px);
+    flex: none;
   }
   .step-connector {
     display: none;
   }
-  .hero-title {
-    font-size: 28px;
-  }
-  .card {
-    padding: 24px;
-  }
+  .hero-section { margin-bottom: 30px; }
+  .card { padding: 20px; }
+  .item-row { flex-direction: column; }
+  .item-img-container { width: 60px; height: 75px; }
+}
+
+@media(max-width: 480px) {
+  .timeline { grid-template-columns: 1fr; }
+  .timeline-step { flex-direction: row; gap: 15px; align-items: center; justify-content: flex-start; }
+  .step-label { margin-top: 0; }
+  .step-icon { width: 40px; height: 40px; }
 }
 </style>
