@@ -44,7 +44,6 @@ onMounted(async () => {
 })
 
 // Watch for route changes to switch tabs without refresh
-import { watch } from 'vue'
 watch(() => route.query.tab, (newTab) => {
   if (newTab) activeTab.value = newTab
 })
