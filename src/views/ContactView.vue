@@ -8,10 +8,11 @@ const content = computed(() => productStore.siteContent.contact)
 
 const form = ref({ name: '', mobile: '', email: '', message: '' })
 const submitted = ref(false)
-const isSubmitting = ref(false)
+const errorMessage = ref('')
 
 const handleSubmit = async () => {
   isSubmitting.value = true
+  errorMessage.value = ''
   try {
     await productStore.submitInquiry({
       fullName: form.value.name,
@@ -24,7 +25,7 @@ const handleSubmit = async () => {
     form.value = { name: '', mobile: '', email: '', message: '' }
     setTimeout(() => submitted.value = false, 5000)
   } catch (err) {
-    alert('Failed to send message. Please try again later.')
+    errorMessage.value = err.response?.data?.message || 'Failed to send message. Please try again later.'
   } finally {
     isSubmitting.value = false
   }
@@ -75,6 +76,7 @@ const handleSubmit = async () => {
             <label for="message">Message</label>
             <textarea v-model="form.message" id="message" rows="5" required placeholder="How can we help you?"></textarea>
           </div>
+          <p v-if="errorMessage" class="error-msg animate-shake">{{ errorMessage }}</p>
           <button 
             type="submit" 
             class="btn submit-btn" 
@@ -198,6 +200,25 @@ const handleSubmit = async () => {
 .submit-btn {
   width: 100%;
   margin-top: 10px;
+}
+.error-msg {
+  color: #e74c3c;
+  background: #fdf2f2;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  border-left: 3px solid #e74c3c;
+}
+.animate-shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
 .contact-map {

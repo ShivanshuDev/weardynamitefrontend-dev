@@ -98,12 +98,17 @@ const returnPolicyText = computed(() => {
             </div>
             <div class="meta-row">
               <span class="meta-label">Invoice Date:</span>
-              <span class="meta-val">{{ new Date(order.date || order.createdAt).toLocaleDateString() }}</span>
+              <span class="meta-val">
+                {{ (() => {
+                  const d = new Date(order.date || order.createdAt);
+                  return isNaN(d.getTime()) ? '-' : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                })() }}
+              </span>
             </div>
             <div class="meta-row">
               <span class="meta-label">Payment Method:</span>
-              <span class="meta-val" style="text-transform: capitalize;">
-                {{ order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Credit Card' }}
+              <span class="meta-val" style="text-transform: uppercase;">
+                {{ order.payment_method === 'COD' ? 'Cash on Delivery' : (order.payment_method || 'Online Payment') }}
               </span>
             </div>
           </div>
@@ -152,7 +157,7 @@ const returnPolicyText = computed(() => {
                 <td class="text-center">{{ item.quantity }}</td>
                 <td class="text-right">{{ productStore.formatPrice(item.price) }}</td>
                 <!-- Assuming item price includes GST, reverse calculate taxable value for the item -->
-                <td class="text-right">{{ productStore.formatPrice((item.price * item.quantity)/1.18) }}</td>
+                <td class="text-right">{{ productStore.formatPrice((item.price * item.quantity) / (1 + (order.tax_percent || 0) / 100)) }}</td>
                 <td class="text-right">{{ productStore.formatPrice(item.price * item.quantity) }}</td>
                 <td v-if="order.status === 'Delivered'" class="text-center no-print">
                    <RouterLink 
@@ -170,24 +175,28 @@ const returnPolicyText = computed(() => {
         <div class="inv-summary">
           <div class="totals-table">
             <div class="total-row">
+               <span class="label">Subtotal (Gross):</span>
+               <span class="val">{{ productStore.formatPrice(order.subtotal || 0) }}</span>
+            </div>
+            <div v-if="order.discount_total > 0" class="total-row" style="color: #e11d48; font-weight: bold;">
+               <span class="label">Discount Applied:</span>
+               <span class="val">(-) {{ productStore.formatPrice(order.discount_total) }}</span>
+            </div>
+            <div class="total-row taxable-line">
               <span class="label">Total Taxable Value:</span>
-              <span class="val">{{ productStore.formatPrice((order.total_amount || order.total || 0) / 1.18) }}</span>
+              <span class="val">{{ productStore.formatPrice((order.subtotal || 0) - (order.discount_total || 0) - (order.tax_total || 0)) }}</span>
             </div>
-            <div class="total-row">
-              <span class="label">CGST (9%):</span>
-              <span class="val">{{ productStore.formatPrice(((order.total_amount || order.total || 0) / 1.18) * 0.09) }}</span>
-            </div>
-            <div class="total-row">
-              <span class="label">SGST (9%):</span>
-              <span class="val">{{ productStore.formatPrice(((order.total_amount || order.total || 0) / 1.18) * 0.09) }}</span>
-            </div>
+             <div class="total-row">
+               <span class="label">CGST ({{ Number(order.tax_percent || 0) / 2 }}%):</span>
+               <span class="val">{{ productStore.formatPrice(order.cgst || 0) }}</span>
+             </div>
+             <div class="total-row">
+               <span class="label">SGST ({{ Number(order.tax_percent || 0) / 2 }}%):</span>
+               <span class="val">{{ productStore.formatPrice(order.sgst || 0) }}</span>
+             </div>
             <div class="total-row">
               <span class="label">Shipping:</span>
-              <span class="val">{{ productStore.formatPrice(order.shipping_total || 0) }}</span>
-            </div>
-            <div class="total-row">
-              <span class="label">Discount:</span>
-              <span class="val">{{ productStore.formatPrice(order.discount_total || 0) }}</span>
+              <span class="val">{{ (order.shipping_total || 0) > 0 ? productStore.formatPrice(order.shipping_total) : 'FREE' }}</span>
             </div>
             <div class="total-row grand-total">
               <span class="label">Grand Total:</span>

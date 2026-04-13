@@ -37,6 +37,9 @@ const handleSubscribe = async () => {
     if (error.response && error.response.status === 409) {
       status.value = 'exists'
       message.value = error.response.data.message
+    } else if (error.response && error.response.status === 429) {
+      status.value = 'error'
+      message.value = error.response.data.message
     } else {
       status.value = 'error'
       message.value = 'System reachability issue. Please try later.'

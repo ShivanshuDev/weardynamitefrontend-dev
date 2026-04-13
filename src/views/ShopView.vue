@@ -131,6 +131,18 @@ const clearAll = () => {
            <button class="btn secondary clear-btn" @click="clearAll">Clear All</button>
         </div>
 
+        <!-- Special Offers Toggle -->
+        <div class="filter-group promo-filter-group">
+          <label class="filter-label promo-toggle">
+            <input 
+              type="checkbox" 
+              v-model="productStore.filters.showPromosOnly"
+            >
+            <span class="checkmark"></span>
+            <strong>🔥 Special Offers Only</strong>
+          </label>
+        </div>
+
         <!-- Price Filter -->
         <div class="filter-group">
           <h4 class="filter-title">Price Range</h4>

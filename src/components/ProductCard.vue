@@ -7,8 +7,10 @@
       
       <!-- Premium Badges -->
       <div v-if="isOutOfStock" class="badge out-of-stock">Out of Stock</div>
+      <div v-else-if="product.promotionType" class="badge promotion" :class="product.promotionType.toLowerCase()">{{ product.promotionType }}</div>
       <div v-else-if="product.featured" class="badge featured">Best Seller</div>
       <div v-else-if="isNewArrival" class="badge new">New Arrival</div>
+      <div v-else-if="hasDiscount" class="badge discount">{{ discountPercent }}% OFF</div>
 
       <button class="favorite-btn" 
               @click.prevent="handleFavorite" 
@@ -152,9 +154,16 @@ const handleFavorite = () => {
 .out-of-stock { background: #fee2e2; color: #991b1b; }
 .featured { background: #dcfce7; color: #166534; }
 .new { background: #fef9c3; color: #854d0e; }
+.promotion {
+  background: #ff5f1f;
+  color: #white;
+}
+.promotion.b1g1 {
+  background: #000;
+  color: #ff5f1f;
+  border: 1px solid #ff5f1f;
+}
 .discount { 
-  right: auto; 
-  left: 8px; 
   background: #3b82f6; 
   color: #fff; 
 }

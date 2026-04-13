@@ -378,11 +378,21 @@ const placeOrder = async () => {
           </div>
           <div class="row">
             <span>Shipping</span>
-            <span>Free</span>
+            <span>{{ productStore.orderSummary.shippingTotal > 0 ? productStore.formatPrice(productStore.orderSummary.shippingTotal) : 'Free' }}</span>
           </div>
-          <div class="row">
-            <span>Tax (Estimated)</span>
-            <span>{{ productStore.formatPrice(productStore.orderSummary.taxTotal) }}</span>
+          <div class="row tax-breakdown">
+            <div class="tax-main">
+              <span>Tax (GST)</span>
+              <span>{{ productStore.formatPrice(productStore.orderSummary.taxTotal) }}</span>
+            </div>
+            <div class="tax-details">
+              <span>CGST ({{ productStore.orderSummary.taxRate / 2 }}%)</span>
+              <span>{{ productStore.formatPrice(productStore.orderSummary.cgst) }}</span>
+            </div>
+            <div class="tax-details">
+               <span>SGST ({{ productStore.orderSummary.taxRate / 2 }}%)</span>
+               <span>{{ productStore.formatPrice(productStore.orderSummary.sgst) }}</span>
+            </div>
           </div>
           <hr />
           <div class="row total">
@@ -840,6 +850,28 @@ const placeOrder = async () => {
   justify-content: space-between;
   margin-bottom: 12px;
   color: #555;
+}
+
+.tax-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.tax-main {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 500;
+  color: #555;
+}
+
+.tax-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  padding-left: 10px;
 }
 
 .summary-totals hr {

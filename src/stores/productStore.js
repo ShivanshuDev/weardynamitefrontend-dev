@@ -21,7 +21,8 @@ export const useProductStore = defineStore('products', {
       occasion: [],
       priceMin: null,
       priceMax: null,
-      searchQuery: ''
+      searchQuery: '',
+      showPromosOnly: false
     },
     sortBy: 'default', // default, price-asc, price-desc, latest
     cart: JSON.parse(localStorage.getItem('cart')) || [],
@@ -93,79 +94,92 @@ export const useProductStore = defineStore('products', {
       let subtotal = 0
       let discountTotal = 0
       let taxTotal = 0
+      let cgst = 0
+      let sgst = 0
+      let shippingTotal = 0
       
-      // 1. Group items by product for Buy X Get Y logic
       const groupedItems = items.reduce((acc, item) => {
         if (!acc[item.productId]) acc[item.productId] = []
         acc[item.productId].push(item)
         return acc
       }, {})
 
-      const processedItems = []
-
-      // 2. Process each group for promotions
       Object.keys(groupedItems).forEach(productId => {
         const productItems = groupedItems[productId]
         const product = state.products.find(p => p.id === productId) || productItems[0]
         
-        let totalQty = productItems.reduce((s, i) => s + i.quantity, 0)
-        let productSubtotal = 0
+        const totalQty = productItems.reduce((s, i) => s + i.quantity, 0)
+        let productSubtotal = productItems.reduce((s, i) => s + (i.price * i.quantity), 0)
         let productDiscount = 0
         
-        // Base price calculation with individual product discount
-        const basePrice = product.price || 0
-        const percentageDiscount = product.discountPercentage || 0
-        const discountedPrice = basePrice * (1 - percentageDiscount / 100)
+        const basePrice = product.salePrice || product.price || 0
         
-        productItems.forEach(item => {
-          const itemTotal = item.price * item.quantity
-          productSubtotal += itemTotal
-          
-          // Add basic percentage discount to total discount
-          productDiscount += (item.price - discountedPrice) * item.quantity
-        })
-
-        // Apply Buy X Get Y Free logic
+        // 1. Promo Type Logic
         if (product.promotionType === 'B1G1') {
-          const freeUnits = Math.floor(totalQty / 2)
-          productDiscount += freeUnits * discountedPrice
+          productDiscount += Math.floor(totalQty / 2) * basePrice
         } else if (product.promotionType === 'B2G1') {
-          const freeUnits = Math.floor(totalQty / 3)
-          productDiscount += freeUnits * discountedPrice
+          productDiscount += Math.floor(totalQty / 3) * basePrice
         }
 
-        // Apply product-specific coupon if it matches
+        // 2. Specific Coupon Logic
         if (state.appliedCoupon && product.discountCoupon === state.appliedCoupon) {
-          // Extra 5% for matched coupon (example logic)
-          productDiscount += productSubtotal * 0.05 
+          productDiscount += (productSubtotal - productDiscount) * 0.05 
         }
 
         subtotal += productSubtotal
         discountTotal += productDiscount
+      })
 
-        // Calculate Tax if applicable
+      // 3. User Level Discounts
+      const authStore = useAuthStore()
+      if (authStore.isLoggedIn && authStore.orders.length === 0) {
+        discountTotal += (subtotal - discountTotal) * 0.10
+      }
+
+      // 4. Global Coupon
+      if (state.appliedCoupon === 'DYNAMITE20') {
+        discountTotal += (subtotal - discountTotal) * 0.20
+      }
+
+      // 5. Final Tax Breakdown (Inclusive Dynamic Split)
+      let maxTaxRate = 0
+      Object.keys(groupedItems).forEach(productId => {
+        const productItems = groupedItems[productId]
+        const product = state.products.find(p => p.id === productId) || productItems[0]
+        const pSubtotal = productItems.reduce((s, i) => s + (i.price * i.quantity), 0)
+        
         if (product.isTaxable !== false) {
-          const taxableAmount = productSubtotal - productDiscount
-          const tax = taxableAmount * ((product.taxPercent || 12) / 100)
+          const weight = pSubtotal / subtotal
+          const pDiscount = discountTotal * weight
+          const net = pSubtotal - pDiscount
+          const rate = product.taxPercent || 18
+          maxTaxRate = Math.max(maxTaxRate, rate)
+          
+          // Inclusive: Tax = Gross - (Gross / (1 + Rate/100))
+          const tax = net - (net / (1 + (rate / 100)))
+          
           taxTotal += tax
+          cgst += tax / 2
+          sgst += tax / 2
+        }
+
+        // Apply shipping per item quantity if applicable
+        if (product.isShippingApplicable) {
+          shippingTotal += (product.shippingCost || 29) * productItems.reduce((s, i) => s + i.quantity, 0)
         }
       })
 
-      // 3. Overall Discounts (e.g. First Time User 10%)
-      const authStore = useAuthStore()
-      const isFirstTime = authStore.isLoggedIn && authStore.orders.length === 0
-      if (isFirstTime) {
-        const firstTimeDiscount = (subtotal - discountTotal) * 0.10
-        discountTotal += firstTimeDiscount
-      }
-
-      const total = subtotal - discountTotal + taxTotal
+      const total = subtotal - discountTotal + shippingTotal
 
       return {
-        subtotal,
-        discountTotal,
-        taxTotal,
-        total,
+        subtotal: Math.round(subtotal * 100) / 100,
+        discountTotal: Math.round(discountTotal * 100) / 100,
+        taxTotal: Math.round(taxTotal * 100) / 100,
+        cgst: Math.round(cgst * 100) / 100,
+        sgst: Math.round(sgst * 100) / 100,
+        shippingTotal: Math.round(shippingTotal * 100) / 100,
+        taxRate: maxTaxRate,
+        total: Math.round(total * 100) / 100,
         itemCount: items.reduce((s, i) => s + i.quantity, 0)
       }
     },
@@ -207,12 +221,13 @@ export const useProductStore = defineStore('products', {
         })
       }
 
-      // Apply Price Filter
-      if (state.filters.priceMin !== null && state.filters.priceMin !== '') {
-        result = result.filter(p => p.price >= parseFloat(state.filters.priceMin))
-      }
       if (state.filters.priceMax !== null && state.filters.priceMax !== '') {
         result = result.filter(p => p.price <= parseFloat(state.filters.priceMax))
+      }
+
+      // Apply Promotion Filter
+      if (state.filters.showPromosOnly) {
+        result = result.filter(p => p.promotionType || p.salePrice < p.mrp)
       }
 
       // Apply Sorting
