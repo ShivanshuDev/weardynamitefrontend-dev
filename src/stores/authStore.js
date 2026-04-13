@@ -342,6 +342,9 @@ export const useAuthStore = defineStore('auth', {
               await productStore.initiateDirectCheckout(data.configs, data.product);
             }
             break;
+          case 'CHECKOUT':
+            productStore.initiateCartCheckout();
+            break;
         }
         
         const res = { type, redirect };

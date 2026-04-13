@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { Search, ShoppingCart, User, Menu, X, Heart, LogOut } from 'lucide-vue-next'
 import { useProductStore } from '../stores/productStore'
 import { useAuthStore } from '../stores/authStore'
@@ -9,6 +9,7 @@ import { PRODUCT_TAXONOMY, GENDERS } from '../data/categories'
 
 import NotificationCenter from './NotificationCenter.vue'
 
+const router = useRouter()
 const productStore = useProductStore()
 const authStore = useAuthStore()
 const isMenuOpen = ref(false)
@@ -40,6 +41,7 @@ const handleMobileNavClick = () => {
 const logout = () => {
   authStore.logout()
   handleMobileNavClick()
+  router.push('/')
 }
 </script>
 

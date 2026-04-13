@@ -24,10 +24,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      console.warn('Session expired or unauthorized. Redirecting to login.');
+      console.warn('Session expired or unauthorized. Redirecting to home.');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      window.location.href = '/';
     }
     return Promise.reject(error);
   }

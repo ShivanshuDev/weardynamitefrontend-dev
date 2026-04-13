@@ -14,10 +14,12 @@ const cartTotal = computed(() => {
 
 const checkout = () => {
   if (productStore.cart.length > 0) {
-    if (useAuthStore().isLoggedIn) {
+    const auth = useAuthStore()
+    if (auth.isLoggedIn) {
       productStore.initiateCartCheckout()
       router.push('/checkout')
     } else {
+      auth.setPendingAction('CHECKOUT', {}, '/checkout')
       router.push('/login')
     }
   }
