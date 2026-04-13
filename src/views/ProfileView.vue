@@ -184,8 +184,8 @@ const savePersonal = async () => {
            <span v-else>{{ (authStore.user?.name || 'U').charAt(0).toUpperCase() }}</span>
          </div>
          <div class="header-text">
-            <h2>{{ authStore.user.name }}</h2>
-            <p>{{ authStore.user.email }}</p>
+            <h2>{{ authStore.user?.name }}</h2>
+            <p>{{ authStore.user?.email }}</p>
          </div>
       </div>
       
@@ -244,35 +244,35 @@ const savePersonal = async () => {
         <div v-if="!isEditingPersonal" class="info-card">
           <div class="info-row">
             <span class="label">Full Name:</span>
-            <span class="value">{{ authStore.user.name }}</span>
+            <span class="value">{{ authStore.user?.name }}</span>
           </div>
           <div class="info-row">
             <span class="label">Email Address:</span>
-            <span class="value">{{ authStore.user.email }}</span>
+            <span class="value">{{ authStore.user?.email }}</span>
           </div>
           <div class="info-row">
             <span class="label">Primary Phone:</span>
-            <span class="value">{{ authStore.user.phone || 'Not provided' }}</span>
+            <span class="value">{{ authStore.user?.phone || 'Not provided' }}</span>
           </div>
           <div class="info-row">
             <span class="label">Secondary Phone:</span>
-            <span class="value">{{ authStore.user.phoneSecondary || 'Not provided' }}</span>
+            <span class="value">{{ authStore.user?.phoneSecondary || 'Not provided' }}</span>
           </div>
           <div class="info-row">
             <span class="label">Date of Birth:</span>
-            <span class="value">{{ authStore.user.dob ? new Date(authStore.user.dob).toLocaleDateString() : 'Not provided' }}</span>
+            <span class="value">{{ authStore.user?.dob ? new Date(authStore.user.dob).toLocaleDateString() : 'Not provided' }}</span>
           </div>
           <div class="info-row">
             <span class="label">Interests:</span>
-            <span class="value">{{ authStore.user.interests || 'Not provided' }}</span>
+            <span class="value">{{ authStore.user?.interests || 'Not provided' }}</span>
           </div>
           <div class="info-row">
             <span class="label">Gender:</span>
-            <span class="value">{{ authStore.user.gender || 'Not provided' }}</span>
+            <span class="value">{{ authStore.user?.gender || 'Not provided' }}</span>
           </div>
           <div class="info-row">
             <span class="label">Member Since:</span>
-            <span class="value">{{ new Date(authStore.user.joinedDate).toLocaleDateString() }}</span>
+            <span class="value">{{ authStore.user?.joinedDate ? new Date(authStore.user.joinedDate).toLocaleDateString() : 'N/A' }}</span>
           </div>
         </div>
 

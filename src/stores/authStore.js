@@ -21,6 +21,21 @@ export const useAuthStore = defineStore('auth', {
     defaultAddress: (state) => state.addresses.find(a => a.isDefault) || state.addresses[0]
   },
   actions: {
+    async syncProfile() {
+      try {
+        const response = await api.post('/auth/sync');
+        this.user = response.data.profile;
+        localStorage.setItem('user', JSON.stringify(this.user));
+        return this.user;
+      } catch (error) {
+        console.error('Profile sync failed:', error);
+        // If sync fails with 401/403, we might want to logout
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          this.logout();
+        }
+        throw error;
+      }
+    },
     async login(email, password) {
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);

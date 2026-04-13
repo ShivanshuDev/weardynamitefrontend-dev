@@ -12,6 +12,11 @@ const authStore = useAuthStore()
 
 onMounted(async () => {
   if (authStore.isLoggedIn) {
+    // If logged in but user profile is missing, sync it first
+    if (!authStore.user) {
+      await authStore.syncProfile().catch(() => {});
+    }
+    
     await Promise.all([
       authStore.fetchOrders(),
       authStore.fetchAddresses(),

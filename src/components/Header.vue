@@ -133,7 +133,7 @@ const logout = () => {
     <div class="mobile-nav" :class="{ 'open': isMenuOpen }">
       <div class="mobile-nav-header">
         <h3>My Account</h3>
-        <p v-if="authStore.isLoggedIn">{{ authStore.user.email }}</p>
+        <p v-if="authStore.isLoggedIn">{{ authStore.user?.email }}</p>
       </div>
       
       <ul class="mobile-nav-links">
