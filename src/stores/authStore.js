@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import api from '../utils/api'
 import { auth, messaging } from '../utils/firebase'
 import { getToken } from 'firebase/messaging'
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, sendEmailVerification } from 'firebase/auth'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -39,6 +39,15 @@ export const useAuthStore = defineStore('auth', {
     async login(email, password) {
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        
+        // Refresh user status to get latest emailVerified property
+        await userCredential.user.reload();
+        
+        if (!userCredential.user.emailVerified) {
+          await signOut(auth);
+          throw new Error('Please verify your email address before logging in. Check your inbox for the verification link.');
+        }
+
         const jwt = await userCredential.user.getIdToken(true);
         console.log('[AUTH DEBUG] Extraction of fresh ID token successful.');
         
@@ -67,24 +76,26 @@ export const useAuthStore = defineStore('auth', {
     async register(name, email, password) {
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const jwt = await userCredential.user.getIdToken(true);
         
+        // Send Verification Email
+        await sendEmailVerification(userCredential.user);
+        
+        // Temporarily set token for the sync call
+        const jwt = await userCredential.user.getIdToken(true);
         this.token = jwt;
         localStorage.setItem('token', jwt);
 
-        // Sync with backend to inject Name and seed initial DB profile mapping
-        const response = await api.post('/auth/sync', { name });
+        // Sync with backend to seed initial profile
+        await api.post('/auth/sync', { name });
         
-        this.user = response.data.profile;
-        localStorage.setItem('user', JSON.stringify(this.user));
+        // Force sign-out until verified
+        await signOut(auth);
+        this.token = null;
+        this.user = null;
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         
-        await Promise.all([
-          this.fetchOrders(),
-          this.fetchInquiries(),
-          this.fetchAddresses(),
-          this.registerFcmToken()
-        ]);
-        return true;
+        return { verificationRequired: true };
       } catch (error) {
         console.error('Registration failed:', error);
         throw error;
@@ -116,6 +127,17 @@ export const useAuthStore = defineStore('auth', {
         return true;
       } catch (error) {
         console.error('Google login failed:', error);
+        throw error;
+      }
+    },
+    async resendVerification(email, password) {
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        await sendEmailVerification(userCredential.user);
+        await signOut(auth);
+        return true;
+      } catch (error) {
+        console.error('Failed to resend verification:', error);
         throw error;
       }
     },

@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { Eye, EyeOff } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -11,6 +12,9 @@ const isLogin = ref(true)
 const email = ref('')
 const password = ref('')
 const name = ref('')
+const showPassword = ref(false)
+const error = ref('')
+const isLoading = ref(false)
 
 const toggleMode = () => {
   isLogin.value = !isLogin.value
@@ -19,8 +23,8 @@ const toggleMode = () => {
   name.value = ''
 }
 
-const error = ref('')
-const isLoading = ref(false)
+const isVerificationNeeded = ref(false)
+const resendSuccess = ref(false)
 
 const submitForm = async () => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -30,6 +34,7 @@ const submitForm = async () => {
   }
   
   error.value = ''
+  resendSuccess.value = false
   isLoading.value = true
   try {
     if (isLogin.value) {
@@ -39,13 +44,34 @@ const submitForm = async () => {
       }
     } else {
       if (name.value && email.value && password.value) {
-        await authStore.register(name.value, email.value, password.value)
-        await handlePostLogin()
+        const result = await authStore.register(name.value, email.value, password.value)
+        if (result?.verificationRequired) {
+          isVerificationNeeded.value = true
+          isLogin.value = true // Switch to login mode to show the message
+        }
       }
     }
   } catch (err) {
-    error.value = err.response?.data?.message || 'Authentication failed. Please check your credentials.'
+    error.value = err.message || 'Authentication failed. Please check your credentials.'
     console.error('Auth error:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const resendVerification = async () => {
+  if (!email.value || !password.value) {
+    error.value = 'Please enter your email and password to resend the verification link.'
+    return
+  }
+  
+  error.value = ''
+  isLoading.value = true
+  try {
+    await authStore.resendVerification(email.value, password.value)
+    resendSuccess.value = true
+  } catch (err) {
+    error.value = 'Failed to resend verification email. Please check your credentials.'
   } finally {
     isLoading.value = false
   }
@@ -93,6 +119,18 @@ const handlePostLogin = async () => {
 
       <div v-if="error" class="error-alert">
         {{ error }}
+        <button v-if="error.includes('verify')" @click="resendVerification" class="resend-link">
+          Resend Link
+        </button>
+      </div>
+
+      <div v-if="isVerificationNeeded" class="success-alert">
+        <strong>Verification Link Sent!</strong>
+        <p>Please check your inbox ({{ email }}) and click the link to activate your account.</p>
+      </div>
+
+      <div v-if="resendSuccess" class="success-alert">
+        Verification link resent successfully!
       </div>
 
       <form @submit.prevent="submitForm" class="auth-form">
@@ -108,7 +146,23 @@ const handlePostLogin = async () => {
         
         <div class="form-group">
           <label>Password</label>
-          <input type="password" v-model="password" placeholder="••••••••" required />
+          <div class="password-wrapper">
+            <input 
+              :type="showPassword ? 'text' : 'password'" 
+              v-model="password" 
+              placeholder="••••••••" 
+              required 
+            />
+            <button 
+              type="button" 
+              class="toggle-password" 
+              @click="showPassword = !showPassword"
+              tabindex="-1"
+            >
+              <Eye v-if="!showPassword" size="20" />
+              <EyeOff v-else size="20" />
+            </button>
+          </div>
         </div>
 
         <div class="form-actions" v-if="isLogin">
@@ -191,6 +245,28 @@ const handlePostLogin = async () => {
   font-size: 0.9rem;
   text-align: center;
 }
+.success-alert {
+  background-color: #f0fdf4;
+  color: #166534;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #bbfcce;
+  margin-bottom: 24px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.success-alert strong { display: block; margin-bottom: 4px; }
+.resend-link {
+  display: block;
+  margin: 10px auto 0;
+  background: none;
+  border: none;
+  color: #dc2626;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
 
 .auth-header {
   text-align: center;
@@ -230,8 +306,38 @@ const handlePostLogin = async () => {
 }
 
 .form-group input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
   outline: none;
-  border-color: #000;
+}
+
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper input {
+  padding-right: 50px !important;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.toggle-password:hover {
+  color: #6366f1;
 }
 
 .form-actions {
